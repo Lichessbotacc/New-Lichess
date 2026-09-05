@@ -71,7 +71,7 @@ window.Chess = Chess;
   .clock.active{background:var(--green);color:#fff;border-color:var(--green);}
 
   .boardwrap{display:flex;}
-  .boardgrid{width:min(88vw,480px);height:min(88vw,480px);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:2px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  .boardgrid{width:min(88vw,480px);height:min(88vw,480px);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:2px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.18);touch-action:none;}
   .sq{position:relative;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer;}
   .sq.light{background:var(--light);} .sq.dark{background:var(--dark);}
   .sq.selected{box-shadow:inset 0 0 0 3px rgba(21,120,20,.7);background-image:linear-gradient(rgba(155,199,0,.41),rgba(155,199,0,.41));}
@@ -82,7 +82,9 @@ window.Chess = Chess;
   .sq .dot.premove-dot{background:rgba(190,40,40,.6);}
   .sq .ring{position:absolute;width:86%;height:86%;border-radius:50%;box-shadow:inset 0 0 0 4px rgba(20,20,20,.24);}
   .sq .ring.premove-dot{box-shadow:inset 0 0 0 4px rgba(190,40,40,.55);}
-  .piece{width:82%;height:82%;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));}
+  .piece{width:82%;height:82%;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));-webkit-user-drag:none;user-select:none;}
+  .sq.dragging-source .piece{opacity:.3;}
+  .drag-ghost{position:fixed;pointer-events:none;z-index:1000;transform:translate(-50%,-50%);filter:drop-shadow(0 5px 10px rgba(0,0,0,.45));}
   .coord{position:absolute;font-size:10px;font-weight:700;opacity:.65;}
   .coord.file{bottom:2px;right:3px;} .coord.rank{top:2px;left:3px;}
   .sq.light .coord{color:var(--dark);} .sq.dark .coord{color:var(--light);}
@@ -445,6 +447,70 @@ function paintBoard(containerEl, chessInstance, orientation, selectedSquare, leg
   }
 }
 
+/* Generic tap + drag-and-drop interaction for any board. tapHandler(sqName)
+   is the existing click logic (select/move) — a drag is simulated as a tap
+   on the source square followed by a tap on the drop square, so all move
+   validation stays in one place. touch-action:none on .boardgrid (CSS)
+   stops the page from scrolling while dragging inside the board; outside
+   the board normal scrolling is untouched. */
+function makeBoardInteractive(containerEl, tapHandler){
+  const THRESHOLD = 6;
+  let startSq = null, startX = 0, startY = 0, dragging = false, ghostEl = null;
+
+  function onMove(e){
+    if(!startSq) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if(!dragging && Math.hypot(dx, dy) > THRESHOLD){
+      const sourceEl = containerEl.querySelector('.sq[data-sq="' + startSq + '"]');
+      const pieceEl = sourceEl && sourceEl.querySelector('.piece');
+      if(pieceEl){
+        dragging = true;
+        const rect = sourceEl.getBoundingClientRect();
+        ghostEl = pieceEl.cloneNode(true);
+        ghostEl.classList.add('drag-ghost');
+        ghostEl.style.width = rect.width + 'px';
+        ghostEl.style.height = rect.height + 'px';
+        ghostEl.style.left = e.clientX + 'px';
+        ghostEl.style.top = e.clientY + 'px';
+        document.body.appendChild(ghostEl);
+        sourceEl.classList.add('dragging-source');
+      }
+    }
+    if(dragging && ghostEl){
+      ghostEl.style.left = e.clientX + 'px';
+      ghostEl.style.top = e.clientY + 'px';
+      e.preventDefault();
+    }
+  }
+  function onUp(e){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    if(ghostEl){ ghostEl.remove(); ghostEl = null; }
+    const sourceDraggingEl = containerEl.querySelector('.sq.dragging-source');
+    if(sourceDraggingEl) sourceDraggingEl.classList.remove('dragging-source');
+
+    if(dragging){
+      const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+      const targetSqEl = elAtPoint && elAtPoint.closest ? elAtPoint.closest('.sq') : null;
+      const targetSq = (targetSqEl && containerEl.contains(targetSqEl)) ? targetSqEl.dataset.sq : null;
+      tapHandler(startSq);
+      if(targetSq && targetSq !== startSq) tapHandler(targetSq);
+    } else {
+      tapHandler(startSq);
+    }
+    startSq = null; dragging = false;
+  }
+
+  containerEl.querySelectorAll('.sq').forEach(sq => {
+    sq.addEventListener('pointerdown', e => {
+      if(e.button !== undefined && e.button !== 0) return;
+      startSq = sq.dataset.sq; startX = e.clientX; startY = e.clientY; dragging = false;
+      document.addEventListener('pointermove', onMove, { passive:false });
+      document.addEventListener('pointerup', onUp, { once:true });
+    });
+  });
+}
+
 /* ============================================================
    VIEW ROUTER
    ============================================================ */
@@ -504,7 +570,7 @@ function renderPlayBoard(){
     to: premove ? premove.to : null
   } : null;
   paintBoard(boardEl, game, boardOrientation, selectedSquare, legalTargets, lastMove, premoveInfo);
-  boardEl.querySelectorAll('.sq').forEach(sq => sq.addEventListener('click', () => onSquareClick(sq.dataset.sq)));
+  makeBoardInteractive(boardEl, onSquareClick);
   boardEl.oncontextmenu = (e) => { e.preventDefault(); clearPremove(); };
 }
 
@@ -810,7 +876,7 @@ function loadPuzzle(index){
 function renderPuzzleBoard(){
   const orientation = puzzleState.game.turn(); // show board from the perspective of whoever moves
   paintBoard(puzzleBoardEl, puzzleState.game, orientation, puzzleState.selected, puzzleState.targets, puzzleState.last);
-  puzzleBoardEl.querySelectorAll('.sq').forEach(sq => sq.addEventListener('click', () => onPuzzleSquareClick(sq.dataset.sq)));
+  makeBoardInteractive(puzzleBoardEl, onPuzzleSquareClick);
 }
 function onPuzzleSquareClick(sqName){
   if(puzzleState.done) return;
@@ -877,7 +943,7 @@ function initAnalysis(loadFen){
 }
 function renderAnalysisBoard(){
   paintBoard(analysisBoardEl, analysisState.game, analysisState.orientation, analysisState.selected, analysisState.targets, analysisState.last);
-  analysisBoardEl.querySelectorAll('.sq').forEach(sq => sq.addEventListener('click', () => onAnalysisSquareClick(sq.dataset.sq)));
+  makeBoardInteractive(analysisBoardEl, onAnalysisSquareClick);
 }
 function onAnalysisSquareClick(sqName){
   if(analysisState.viewPly !== analysisState.history.length) return; // don't allow moves while reviewing history
