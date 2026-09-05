@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Kordava Chess • Free Online Chess</title>
 <script>
 /* chess.js 0.13.4 — inlined (converted from ES module export to a plain global)
    so the board works with no external network dependency. */
-const SYMBOLS="pnbrqkPNBRQK",DEFAULT_POSITION="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",TERMINATION_MARKERS=["1-0","0-1","1/2-1/2","*"],PAWN_OFFSETS={b:[16,32,17,15],w:[-16,-32,-17,-15]},PIECE_OFFSETS={n:[-18,-33,-31,-14,18,33,31,14],b:[-17,-15,17,15],r:[-16,1,16,-1],q:[-17,-16,-15,1,17,16,15,-1],k:[-17,-16,-15,1,17,16,15,-1]},ATTACKS=[20,0,0,0,0,0,0,24,0,0,0,0,0,0,20,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,24,24,24,24,24,24,56,0,56,24,24,24,24,24,24,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,20,0,0,0,0,0,0,24,0,0,0,0,0,0,20],RAYS=[17,0,0,0,0,0,0,16,0,0,0,0,0,0,15,0,0,17,0,0,0,0,0,16,0,0,0,0,0,15,0,0,0,0,17,0,0,0,0,16,0,0,0,0,15,0,0,0,0,0,0,17,0,0,0,16,0,0,0,15,0,0,0,0,0,0,0,0,17,0,0,16,0,0,15,0,0,0,0,0,0,0,0,0,0,17,0,16,0,15,0,0,0,0,0,0,0,0,0,0,0,0,17,16,15,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,-15,-16,-17,0,0,0,0,0,0,0,0,0,0,0,0,-15,0,-16,0,-17,0,0,0,0,0,0,0,0,0,0,-15,0,0,-16,0,0,-17,0,0,0,0,0,0,0,0,-15,0,0,0,-16,0,0,0,-17,0,0,0,0,0,0,-15,0,0,0,0,-16,0,0,0,0,-17,0,0,0,0,-15,0,0,0,0,0,-16,0,0,0,0,0,-17,0,0,-15,0,0,0,0,0,0,-16,0,0,0,0,0,0,-17],SHIFTS={p:0,n:1,b:2,r:3,q:4,k:5},BITS={NORMAL:1,CAPTURE:2,BIG_PAWN:4,EP_CAPTURE:8,PROMOTION:16,KSIDE_CASTLE:32,QSIDE_CASTLE:64},RANK_1=7,RANK_2=6,RANK_3=5,RANK_4=4,RANK_5=3,RANK_6=2,RANK_7=1,RANK_8=0,SQUARE_MAP={a8:0,b8:1,c8:2,d8:3,e8:4,f8:5,g8:6,h8:7,a7:16,b7:17,c7:18,d7:19,e7:20,f7:21,g7:22,h7:23,a6:32,b6:33,c6:34,d6:35,e6:36,f6:37,g6:38,h6:39,a5:48,b5:49,c5:50,d5:51,e5:52,f5:53,g5:54,h5:55,a4:64,b4:65,c4:66,d4:67,e4:68,f4:69,g4:70,h4:71,a3:80,b3:81,c3:82,d3:83,e3:84,f3:85,g3:86,h3:87,a2:96,b2:97,c2:98,d2:99,e2:100,f2:101,g2:102,h2:103,a1:112,b1:113,c1:114,d1:115,e1:116,f1:117,g1:118,h1:119},ROOKS={w:[{square:SQUARE_MAP.a1,flag:BITS.QSIDE_CASTLE},{square:SQUARE_MAP.h1,flag:BITS.KSIDE_CASTLE}],b:[{square:SQUARE_MAP.a8,flag:BITS.QSIDE_CASTLE},{square:SQUARE_MAP.h8,flag:BITS.KSIDE_CASTLE}]},PARSER_STRICT=0,PARSER_SLOPPY=1;function get_disambiguator(e,r){for(var n=e.from,t=e.to,o=e.piece,i=0,a=0,l=0,f=0,u=r.length;f<u;f++){var c=r[f].from,s=r[f].to;o===r[f].piece&&n!==c&&t===s&&(i++,rank(n)===rank(c)&&a++,file(n)===file(c)&&l++)}return 0<i?0<a&&0<l?algebraic(n):0<l?algebraic(n).charAt(1):algebraic(n).charAt(0):""}function infer_piece_type(e){var r=e.charAt(0);return"a"<=r&&r<="h"?e.match(/[a-h]\d.*[a-h]\d/)?void 0:PAWN:"o"===(r=r.toLowerCase())?KING:r}function stripped_san(e){return e.replace(/=/,"").replace(/[+#]?[?!]*$/,"")}function rank(e){return e>>4}function file(e){return 15&e}function algebraic(e){var r=file(e),e=rank(e);return"abcdefgh".substring(r,r+1)+"87654321".substring(e,e+1)}function swap_color(e){return e===WHITE?BLACK:WHITE}function is_digit(e){return-1!=="0123456789".indexOf(e)}function clone(e){var r,n=e instanceof Array?[]:{};for(r in e)n[r]="object"==typeof r?clone(e[r]):e[r];return n}function trim(e){return e.replace(/^\s+|\s+$/g,"")}const BLACK="b",WHITE="w",EMPTY=-1,PAWN="p",KNIGHT="n",BISHOP="b",ROOK="r",QUEEN="q",KING="k",SQUARES=function(){for(var e=[],r=SQUARE_MAP.a8;r<=SQUARE_MAP.h1;r++)136&r?r+=7:e.push(algebraic(r));return e}(),FLAGS={NORMAL:"n",CAPTURE:"c",BIG_PAWN:"b",EP_CAPTURE:"e",PROMOTION:"p",KSIDE_CASTLE:"k",QSIDE_CASTLE:"q"},Chess=function(e){var I=new Array(128),P={w:EMPTY,b:EMPTY},v=WHITE,R={w:0,b:0},d=EMPTY,f=0,A=1,E=[],T={},h={};function u(e){void 0===e&&(e=!1),I=new Array(128),P={w:EMPTY,b:EMPTY},v=WHITE,R={w:0,b:0},d=EMPTY,f=0,A=1,E=[],e||(T={}),h={},s(O())}function r(){function e(e){e in h&&(n[e]=h[e])}for(var r=[],n={};0<E.length;)r.push(y());for(e(O());0<r.length;)L(r.pop()),e(O());h=n}function b(){m(DEFAULT_POSITION)}function m(e,r){void 0===r&&(r=!1);var n=e.split(/\s+/),t=n[0],o=0;if(!c(e).valid)return!1;u(r);for(var i=0;i<t.length;i++){var a,l=t.charAt(i);"/"===l?o+=8:is_digit(l)?o+=parseInt(l,10):(a=l<"a"?WHITE:BLACK,p({type:l.toLowerCase(),color:a},algebraic(o)),o++)}return v=n[1],-1<n[2].indexOf("K")&&(R.w|=BITS.KSIDE_CASTLE),-1<n[2].indexOf("Q")&&(R.w|=BITS.QSIDE_CASTLE),-1<n[2].indexOf("k")&&(R.b|=BITS.KSIDE_CASTLE),-1<n[2].indexOf("q")&&(R.b|=BITS.QSIDE_CASTLE),d="-"===n[3]?EMPTY:SQUARE_MAP[n[3]],f=parseInt(n[4],10),A=parseInt(n[5],10),s(O()),!0}function c(e){var r="No errors.",n="FEN string must contain six space-delimited fields.",t="6th field (move number) must be a positive integer.",o="5th field (half move counter) must be a non-negative integer.",i="4th field (en-passant square) is invalid.",a="3rd field (castling availability) is invalid.",l="2nd field (side to move) is invalid.",f="1st field (piece positions) does not contain 8 '/'-delimited rows.",u="1st field (piece positions) is invalid [consecutive numbers].",c="1st field (piece positions) is invalid [invalid piece].",s="1st field (piece positions) is invalid [row too large].",p="Illegal en-passant square",e=e.split(/\s+/);if(6!==e.length)return{valid:!1,error_number:1,error:n};if(isNaN(parseInt(e[5]))||parseInt(e[5],10)<=0)return{valid:!1,error_number:2,error:t};if(isNaN(parseInt(e[4]))||parseInt(e[4],10)<0)return{valid:!1,error_number:3,error:o};if(!/^(-|[abcdefgh][36])$/.test(e[3]))return{valid:!1,error_number:4,error:i};if(!/^(KQ?k?q?|Qk?q?|kq?|q|-)$/.test(e[2]))return{valid:!1,error_number:5,error:a};if(!/^(w|b)$/.test(e[1]))return{valid:!1,error_number:6,error:l};var S=e[0].split("/");if(8!==S.length)return{valid:!1,error_number:7,error:f};for(var A=0;A<S.length;A++){for(var E=0,g=!1,_=0;_<S[A].length;_++)if(isNaN(S[A][_])){if(!/^[prnbqkPRNBQK]$/.test(S[A][_]))return{valid:!1,error_number:9,error:c};E+=1,g=!1}else{if(g)return{valid:!1,error_number:8,error:u};E+=parseInt(S[A][_],10),g=!0}if(8!==E)return{valid:!1,error_number:10,error:s}}return"3"==e[3][1]&&"w"==e[1]||"6"==e[3][1]&&"b"==e[1]?{valid:!1,error_number:11,error:p}:{valid:!0,error_number:0,error:r}}function O(){for(var e,r,n=0,t="",o=SQUARE_MAP.a8;o<=SQUARE_MAP.h1;o++)null==I[o]?n++:(0<n&&(t+=n,n=0),e=I[o].color,r=I[o].type,t+=e===WHITE?r.toUpperCase():r.toLowerCase()),o+1&136&&(0<n&&(t+=n),o!==SQUARE_MAP.h1&&(t+="/"),n=0,o+=8);var i="",a=(R[WHITE]&BITS.KSIDE_CASTLE&&(i+="K"),R[WHITE]&BITS.QSIDE_CASTLE&&(i+="Q"),R[BLACK]&BITS.KSIDE_CASTLE&&(i+="k"),R[BLACK]&BITS.QSIDE_CASTLE&&(i+="q"),i=i||"-",d===EMPTY?"-":algebraic(d));return[t,v,i,a,f,A].join(" ")}function N(e){for(var r=0;r<e.length;r+=2)"string"==typeof e[r]&&"string"==typeof e[r+1]&&(T[e[r]]=e[r+1]);return T}function s(e){0<E.length||(e!==DEFAULT_POSITION?(T.SetUp="1",T.FEN=e):(delete T.SetUp,delete T.FEN))}function n(e){e=I[SQUARE_MAP[e]];return e?{type:e.type,color:e.color}:null}function p(e,r){if(!("type"in e&&"color"in e))return!1;if(-1===SYMBOLS.indexOf(e.type.toLowerCase()))return!1;if(!(r in SQUARE_MAP))return!1;r=SQUARE_MAP[r];return(e.type!=KING||P[e.color]==EMPTY||P[e.color]==r)&&(I[r]={type:e.type,color:e.color},e.type===KING&&(P[e.color]=r),s(O()),!0)}function C(e,r,n,t,o){r={color:v,from:r,to:n,flags:t,piece:e[r].type};return o&&(r.flags|=BITS.PROMOTION,r.promotion=o),e[n]?r.captured=e[n].type:t&BITS.EP_CAPTURE&&(r.captured=PAWN),r}function g(e){function r(e,r,n,t,o){if(e[n].type!==PAWN||rank(t)!==RANK_8&&rank(t)!==RANK_1)r.push(C(e,n,t,o));else for(var i=[QUEEN,ROOK,BISHOP,KNIGHT],a=0,l=i.length;a<l;a++)r.push(C(e,n,t,o,i[a]))}var n=[],t=v,o=swap_color(t),i={b:RANK_7,w:RANK_2},a=SQUARE_MAP.a8,l=SQUARE_MAP.h1,f=!1,u=!(void 0!==e&&"legal"in e)||e.legal,c=!(void 0!==e&&"piece"in e&&"string"==typeof e.piece)||e.piece.toLowerCase();if(void 0!==e&&"square"in e){if(!(e.square in SQUARE_MAP))return[];a=l=SQUARE_MAP[e.square],f=!0}for(var s,p,S=a;S<=l;S++)if(136&S)S+=7;else{var A=I[S];if(null!=A&&A.color===t)if(A.type!==PAWN||!0!==c&&c!==PAWN){if(!0===c||c===A.type)for(var E=0,g=PIECE_OFFSETS[A.type].length;E<g;E++)for(var _=PIECE_OFFSETS[A.type][E],T=S;;){if(136&(T+=_))break;if(null!=I[T]){if(I[T].color===t)break;r(I,n,S,T,BITS.CAPTURE);break}if(r(I,n,S,T,BITS.NORMAL),"n"===A.type||"k"===A.type)break}}else{var T=S+PAWN_OFFSETS[t][0];for(null==I[T]&&(r(I,n,S,T,BITS.NORMAL),T=S+PAWN_OFFSETS[t][1],i[t]===rank(S)&&null==I[T]&&r(I,n,S,T,BITS.BIG_PAWN)),E=2;E<4;E++)136&(T=S+PAWN_OFFSETS[t][E])||(null!=I[T]&&I[T].color===o?r(I,n,S,T,BITS.CAPTURE):T===d&&r(I,n,S,d,BITS.EP_CAPTURE))}}if(!0!==c&&c!==KING||f&&l!==P[t]||(R[t]&BITS.KSIDE_CASTLE&&(p=(s=P[t])+2,null!=I[s+1]||null!=I[p]||B(o,P[t])||B(o,s+1)||B(o,p)||r(I,n,P[t],p,BITS.KSIDE_CASTLE)),R[t]&BITS.QSIDE_CASTLE&&(p=(s=P[t])-2,null!=I[s-1]||null!=I[s-2]||null!=I[s-3]||B(o,P[t])||B(o,s-1)||B(o,p)||r(I,n,P[t],p,BITS.QSIDE_CASTLE))),!u)return n;for(var h=[],S=0,g=n.length;S<g;S++)L(n[S]),K(t)||h.push(n[S]),y();return h}function _(e,r){var n="";return e.flags&BITS.KSIDE_CASTLE?n="O-O":e.flags&BITS.QSIDE_CASTLE?n="O-O-O":(e.piece!==PAWN&&(r=get_disambiguator(e,r),n+=e.piece.toUpperCase()+r),e.flags&(BITS.CAPTURE|BITS.EP_CAPTURE)&&(e.piece===PAWN&&(n+=algebraic(e.from)[0]),n+="x"),n+=algebraic(e.to),e.flags&BITS.PROMOTION&&(n+="="+e.promotion.toUpperCase())),L(e),t()&&(o()?n+="#":n+="+"),y(),n}function B(e,r){for(var n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)if(136&n)n+=7;else if(null!=I[n]&&I[n].color===e){var t=I[n],o=n-r,i=119+o;if(ATTACKS[i]&1<<SHIFTS[t.type])if(t.type===PAWN){if(0<o){if(t.color===WHITE)return!0}else if(t.color===BLACK)return!0}else{if("n"===t.type||"k"===t.type)return!0;for(var a=RAYS[i],l=n+a,f=!1;l!==r;){if(null!=I[l]){f=!0;break}l+=a}if(!f)return!0}}return!1}function K(e){return B(swap_color(e),P[e])}function t(){return K(v)}function o(){return t()&&0===g().length}function i(){return!t()&&0===g().length}function a(){for(var e={},r=[],n=0,t=0,o=SQUARE_MAP.a8;o<=SQUARE_MAP.h1;o++){var i,t=(t+1)%2;136&o?o+=7:(i=I[o])&&(e[i.type]=i.type in e?e[i.type]+1:1,i.type===BISHOP&&r.push(t),n++)}if(2===n)return!0;if(3===n&&(1===e[BISHOP]||1===e[KNIGHT]))return!0;if(n===e[BISHOP]+2){for(var a=0,l=r.length,o=0;o<l;o++)a+=r[o];if(0===a||a===l)return!0}return!1}function l(){for(var e=[],r={},n=!1;;){var t=y();if(!t)break;e.push(t)}for(;;){var o=O().split(" ").slice(0,4).join(" ");if(r[o]=o in r?r[o]+1:1,3<=r[o]&&(n=!0),!e.length)break;L(e.pop())}return n}function L(e){var r,n,t=v,o=swap_color(t);if(E.push({move:e,kings:{b:P.b,w:P.w},turn:v,castling:{b:R.b,w:R.w},ep_square:d,half_moves:f,move_number:A}),I[e.to]=I[e.from],I[e.from]=null,e.flags&BITS.EP_CAPTURE&&(v===BLACK?I[e.to-16]=null:I[e.to+16]=null),e.flags&BITS.PROMOTION&&(I[e.to]={type:e.promotion,color:t}),I[e.to].type===KING&&(P[I[e.to].color]=e.to,e.flags&BITS.KSIDE_CASTLE?(r=e.to-1,n=e.to+1,I[r]=I[n],I[n]=null):e.flags&BITS.QSIDE_CASTLE&&(r=e.to+1,n=e.to-2,I[r]=I[n],I[n]=null),R[t]=""),R[t])for(var i=0,a=ROOKS[t].length;i<a;i++)if(e.from===ROOKS[t][i].square&&R[t]&ROOKS[t][i].flag){R[t]^=ROOKS[t][i].flag;break}if(R[o])for(i=0,a=ROOKS[o].length;i<a;i++)if(e.to===ROOKS[o][i].square&&R[o]&ROOKS[o][i].flag){R[o]^=ROOKS[o][i].flag;break}d=e.flags&BITS.BIG_PAWN?"b"===v?e.to-16:e.to+16:EMPTY,e.piece===PAWN||e.flags&(BITS.CAPTURE|BITS.EP_CAPTURE)?f=0:f++,v===BLACK&&A++,v=swap_color(v)}function y(){var e=E.pop();if(null==e)return null;var r,n,t=e.move,e=(P=e.kings,v=e.turn,R=e.castling,d=e.ep_square,f=e.half_moves,A=e.move_number,v),o=swap_color(v);return I[t.from]=I[t.to],I[t.from].type=t.piece,I[t.to]=null,t.flags&BITS.CAPTURE?I[t.to]={type:t.captured,color:o}:t.flags&BITS.EP_CAPTURE&&(e=e===BLACK?t.to-16:t.to+16,I[e]={type:PAWN,color:o}),t.flags&(BITS.KSIDE_CASTLE|BITS.QSIDE_CASTLE)&&(t.flags&BITS.KSIDE_CASTLE?(r=t.to+1,n=t.to-1):t.flags&BITS.QSIDE_CASTLE&&(r=t.to-2,n=t.to+1),I[r]=I[n],I[n]=null),t}function U(e,r){for(var n=stripped_san(e),t=0;t<2;t++){if(t==PARSER_SLOPPY){if(!r)return null;var o,i,a,l,f=!1,u=n.match(/([pnbrqkPNBRQK])?([a-h][1-8])x?-?([a-h][1-8])([qrbnQRBN])?/);(u=u||n.match(/([pnbrqkPNBRQK])?([a-h]?[1-8]?)x?-?([a-h][1-8])([qrbnQRBN])?/))&&(o=u[1],i=u[2],a=u[3],l=u[4],1==i.length&&(f=!0))}for(var c=infer_piece_type(n),s=g({legal:!0,piece:o||c}),p=0,S=s.length;p<S;p++)switch(t){case PARSER_STRICT:if(n===stripped_san(_(s[p],s)))return s[p];break;case PARSER_SLOPPY:if(u){if(!(o&&o.toLowerCase()!=s[p].piece||SQUARE_MAP[i]!=s[p].from||SQUARE_MAP[a]!=s[p].to||l&&l.toLowerCase()!=s[p].promotion))return s[p];if(f){var A=algebraic(s[p].from);if(!(o&&o.toLowerCase()!=s[p].piece||SQUARE_MAP[a]!=s[p].to||i!=A[0]&&i!=A[1]||l&&l.toLowerCase()!=s[p].promotion))return s[p]}}}}return null}function S(e){var r,n=clone(e),t=(n.san=_(n,g({legal:!0})),n.to=algebraic(n.to),n.from=algebraic(n.from),"");for(r in BITS)BITS[r]&n.flags&&(t+=FLAGS[r]);return n.flags=t,n}return m(void 0===e?DEFAULT_POSITION:e),{load:function(e){return m(e)},reset:b,moves:function(e){for(var r=g(e),n=[],t=0,o=r.length;t<o;t++)void 0!==e&&"verbose"in e&&e.verbose?n.push(S(r[t])):n.push(_(r[t],g({legal:!0})));return n},in_check:t,in_checkmate:o,in_stalemate:i,in_draw:function(){return 100<=f||i()||a()||l()},insufficient_material:a,in_threefold_repetition:l,game_over:function(){return 100<=f||o()||i()||a()||l()},validate_fen:c,fen:O,board:function(){for(var e=[],r=[],n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)null==I[n]?r.push(null):r.push({square:algebraic(n),type:I[n].type,color:I[n].color}),n+1&136&&(e.push(r),r=[],n+=8);return e},pgn:function(e){var t="object"==typeof e&&"string"==typeof e.newline_char?e.newline_char:"\n",o="object"==typeof e&&"number"==typeof e.max_width?e.max_width:0,i=[],r=!1;for(S in T)i.push("["+S+' "'+T[S]+'"]'+t),r=!0;r&&E.length&&i.push(t);function n(e){var r=h[O()];return e=void 0!==r?e+(0<e.length?" ":"")+`{${r}}`:e}for(var a=[];0<E.length;)a.push(y());var l=[],f="";for(0===a.length&&l.push(n(""));0<a.length;){f=n(f);var u,c=a.pop();E.length||"b"!==c.color?"w"===c.color&&(f.length&&l.push(f),f=A+"."):(u=A+". ...",f=f?f+" "+u:u),f=f+" "+_(c,g({legal:!0})),L(c)}if(f.length&&l.push(n(f)),void 0!==T.Result&&l.push(T.Result),0===o)return i.join("")+l.join(" ");for(var s=function(){return 0<i.length&&" "===i[i.length-1]&&(i.pop(),!0)},p=0,S=0;S<l.length;S++)p+l[S].length>o&&l[S].includes("{")?p=function(e,r){for(var n of r.split(" "))if(n){if(e+n.length>o){for(;s();)e--;i.push(t),e=0}i.push(n),e+=n.length,i.push(" "),e++}return s()&&e--,e}(p,l[S]):(p+l[S].length>o&&0!==S?(" "===i[i.length-1]&&i.pop(),i.push(t),p=0):0!==S&&(i.push(" "),p++),i.push(l[S]),p+=l[S].length);return i.join("")},load_pgn:function(e,r){var n=void 0!==r&&"sloppy"in r&&r.sloppy;function l(e){return e.replace(/\\/g,"\\")}e=e.trim();var t,o="object"==typeof r&&"string"==typeof r.newline_char?r.newline_char:"\r?\n",i=new RegExp("^(\\[((?:"+l(o)+")|.)*\\])(?:\\s*"+l(o)+"){2}"),i=i.test(e)?i.exec(e)[1]:"",a=(b(),function(e,r){for(var r="object"==typeof r&&"string"==typeof r.newline_char?r.newline_char:"\r?\n",n={},t=e.split(new RegExp(l(r))),o=0;o<t.length;o++){var i=/^\s*\[([A-Za-z]+)\s*"(.*)"\s*\]\s*$/,a=t[o].replace(i,"$1"),i=t[o].replace(i,"$2");0<trim(a).length&&(n[a]=i)}return n}(i,r)),f="";for(t in a)"fen"===t.toLowerCase()&&(f=a[t]),N([t,a[t]]);if(n){if(f&&!m(f,!0))return!1}else if("1"===a.SetUp&&!("FEN"in a&&m(a.FEN,!0)))return!1;function u(e){return e=e.replace(new RegExp(l(o),"g")," "),`{${c(e.slice(1,e.length-1))}}`}for(var c=function(e){return Array.from(e).map(function(e){return e.charCodeAt(0)<128?e.charCodeAt(0).toString(16):encodeURIComponent(e).replace(/\%/g,"").toLowerCase()}).join("")},s=function(e){return 0==e.length?"":decodeURIComponent("%"+e.match(/.{1,2}/g).join("%"))},p=e.replace(i,"").replace(new RegExp(`({[^}]*})+?|;([^${l(o)}]*)`,"g"),function(e,r,n){return void 0!==r?u(r):" "+u(`{${n.slice(1)}}`)}).replace(new RegExp(l(o),"g")," "),S=/(\([^\(\)]+\))+?/g;S.test(p);)p=p.replace(S,"");for(var A=(A=trim(p=(p=(p=p.replace(/\d+\.(\.\.)?/g,"")).replace(/\.\.\./g,"")).replace(/\$\d+/g,"")).split(new RegExp(/\s+/))).join(",").replace(/,,+/g,",").split(","),E="",g=0;g<A.length;g++){var _=function(e){if(e.startsWith("{")&&e.endsWith("}"))return s(e.slice(1,e.length-1))}(A[g]);if(void 0!==_)h[O()]=_;else if(null==(_=U(A[g],n))){if(!(-1<TERMINATION_MARKERS.indexOf(A[g])))return!1;E=A[g]}else E="",L(_)}return E&&Object.keys(T).length&&!T.Result&&N(["Result",E]),!0},header:function(){return N(arguments)},turn:function(){return v},move:function(e,r){var r=void 0!==r&&"sloppy"in r&&r.sloppy,n=null;if("string"==typeof e)n=U(e,r);else if("object"==typeof e)for(var t=g(),o=0,i=t.length;o<i;o++)if(!(e.from!==algebraic(t[o].from)||e.to!==algebraic(t[o].to)||"promotion"in t[o]&&e.promotion!==t[o].promotion)){n=t[o];break}if(!n)return null;r=S(n);return L(n),r},undo:function(){var e=y();return e?S(e):null},clear:function(){return u()},put:p,get:n,ascii(){for(var e,r="   +------------------------+\n",n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)0===file(n)&&(r+=" "+"87654321"[rank(n)]+" |"),null==I[n]?r+=" . ":(e=I[n].type,r+=" "+(I[n].color===WHITE?e.toUpperCase():e.toLowerCase())+" "),n+1&136&&(r+="|\n",n+=8);return r=r+"   +------------------------+\n"+"     a  b  c  d  e  f  g  h"},remove:function(e){return r=n(e=e),I[SQUARE_MAP[e]]=null,r&&r.type===KING&&(P[r.color]=EMPTY),s(O()),r;var r},perft:function e(r){for(var n=g({legal:!1}),t=0,o=v,i=0,a=n.length;i<a;i++)L(n[i]),K(o)||(0<r-1?t+=e(r-1):t++),y();return t},square_color:function(e){return e in SQUARE_MAP?(rank(e=SQUARE_MAP[e])+file(e))%2==0?"light":"dark":null},history:function(e){for(var r=[],n=[],t=(void 0!==e&&"verbose"in e&&e.verbose);0<E.length;)r.push(y());for(;0<r.length;){var o=r.pop();t?n.push(S(o)):n.push(_(o,g({legal:!0}))),L(o)}return n},get_comment:function(){return h[O()]},set_comment:function(e){h[O()]=e.replace("{","[").replace("}","]")},delete_comment:function(){var e=h[O()];return delete h[O()],e},get_comments:function(){return r(),Object.keys(h).map(function(e){return{fen:e,comment:h[e]}})},delete_comments:function(){return r(),Object.keys(h).map(function(e){var r=h[e];return delete h[e],{fen:e,comment:r}})}}};
+const SYMBOLS="pnbrqkPNBRQK",DEFAULT_POSITION="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",TERMINATION_MARKERS=["1-0","0-1","1/2-1/2","*"],PAWN_OFFSETS={b:[16,32,17,15],w:[-16,-32,-17,-15]},PIECE_OFFSETS={n:[-18,-33,-31,-14,18,33,31,14],b:[-17,-15,17,15],r:[-16,1,16,-1],q:[-17,-16,-15,1,17,16,15,-1],k:[-17,-16,-15,1,17,16,15,-1]},ATTACKS=[20,0,0,0,0,0,0,24,0,0,0,0,0,0,20,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,24,24,24,24,24,24,56,0,56,24,24,24,24,24,24,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,20,0,0,0,0,0,0,24,0,0,0,0,0,0,20],RAYS=[17,0,0,0,0,0,0,16,0,0,0,0,0,0,15,0,0,17,0,0,0,0,0,16,0,0,0,0,0,15,0,0,0,0,17,0,0,0,0,16,0,0,0,0,15,0,0,0,0,0,0,17,0,0,0,16,0,0,0,15,0,0,0,0,0,0,0,0,17,0,0,16,0,0,15,0,0,0,0,0,0,0,0,0,0,17,0,16,0,15,0,0,0,0,0,0,0,0,0,0,0,0,17,16,15,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,-15,-16,-17,0,0,0,0,0,0,0,0,0,0,0,0,-15,0,-16,0,-17,0,0,0,0,0,0,0,0,0,0,-15,0,0,-16,0,0,-17,0,0,0,0,0,0,0,0,-15,0,0,0,-16,0,0,0,-17,0,0,0,0,0,0,-15,0,0,0,0,-16,0,0,0,0,-17,0,0,0,0,-15,0,0,0,0,0,-16,0,0,0,0,0,-17,0,0,-15,0,0,0,0,0,0,-16,0,0,0,0,0,0,-17],SHIFTS={p:0,n:1,b:2,r:3,q:4,k:5},BITS={NORMAL:1,CAPTURE:2,BIG_PAWN:4,EP_CAPTURE:8,PROMOTION:16,KSIDE_CASTLE:32,QSIDE_CASTLE:64},RANK_1=7,RANK_2=6,RANK_3=5,RANK_4=4,RANK_5=3,RANK_6=2,RANK_7=1,RANK_8=0,SQUARE_MAP={a8:0,b8:1,c8:2,d8:3,e8:4,f8:5,g8:6,h8:7,a7:16,b7:17,c7:18,d7:19,e7:20,f7:21,g7:22,h7:23,a6:32,b6:33,c6:34,d6:35,e6:36,f6:37,g6:38,h6:39,a5:48,b5:49,c5:50,d5:51,e5:52,f5:53,g5:54,h5:55,a4:64,b4:65,c4:66,d4:67,e4:68,f4:69,g4:70,h4:71,a3:80,b3:81,c3:82,d3:83,e3:84,f3:85,g3:86,h3:87,a2:96,b2:97,c2:98,d2:99,e2:100,f2:101,g2:102,h2:103,a1:112,b1:113,c1:114,d1:115,e1:116,f1:117,g1:118,h1:119},ROOKS={w:[{square:SQUARE_MAP.a1,flag:BITS.QSIDE_CASTLE},{square:SQUARE_MAP.h1,flag:BITS.KSIDE_CASTLE}],b:[{square:SQUARE_MAP.a8,flag:BITS.QSIDE_CASTLE},{square:SQUARE_MAP.h8,flag:BITS.KSIDE_CASTLE}]},PARSER_STRICT=0,PARSER_SLOPPY=1;function get_disambiguator(e,r){for(var n=e.from,t=e.to,o=e.piece,i=0,a=0,l=0,f=0,u=r.length;f<u;f++){var c=r[f].from,s=r[f].to;o===r[f].piece&&n!==c&&t===s&&(i++,rank(n)===rank(c)&&a++,file(n)===file(c)&&l++)}return 0<i?0<a&&0<l?algebraic(n):0<l?algebraic(n).charAt(1):algebraic(n).charAt(0):""}function infer_piece_type(e){var r=e.charAt(0);return"a"<=r&&r<="h"?e.match(/[a-h]\d.*[a-h]\d/)?void 0:PAWN:"o"===(r=r.toLowerCase())?KING:r}function stripped_san(e){return e.replace(/=/,"").replace(/[+#]?[?!]*$/,"")}function rank(e){return e>>4}function file(e){return 15&e}function algebraic(e){var r=file(e),e=rank(e);return"abcdefgh".substring(r,r+1)+"87654321".substring(e,e+1)}function swap_color(e){return e===WHITE?BLACK:WHITE}function is_digit(e){return-1!=="0123456789".indexOf(e)}function clone(e){var r,n=e instanceof Array?[]:{};for(r in e)n[r]="object"==typeof r?clone(e[r]):e[r];return n}function trim(e){return e.replace(/^\s+|\s+$/g,"")}const BLACK="b",WHITE="w",EMPTY=-1,PAWN="p",KNIGHT="n",BISHOP="b",ROOK="r",QUEEN="q",KING="k",SQUARES=function(){for(var e=[],r=SQUARE_MAP.a8;r<=SQUARE_MAP.h1;r++)136&r?r+=7:e.push(algebraic(r));return e}(),FLAGS={NORMAL:"n",CAPTURE:"c",BIG_PAWN:"b",EP_CAPTURE:"e",PROMOTION:"p",KSIDE_CASTLE:"k",QSIDE_CASTLE:"q"},Chess=function(e){var I=new Array(128),P={w:EMPTY,b:EMPTY},v=WHITE,R={w:0,b:0},d=EMPTY,f=0,A=1,E=[],T={},h={};function u(e){void 0===e&&(e=!1),I=new Array(128),P={w:EMPTY,b:EMPTY},v=WHITE,R={w:0,b:0},d=EMPTY,f=0,A=1,E=[],e||(T={}),h={},s(O())}function r(){function e(e){e in h&&(n[e]=h[e])}for(var r=[],n={};0<E.length;)r.push(y());for(e(O());0<r.length;)L(r.pop()),e(O());h=n}function b(){m(DEFAULT_POSITION)}function m(e,r){void 0===r&&(r=!1);var n=e.split(/\s+/),t=n[0],o=0;if(!c(e).valid)return!1;u(r);for(var i=0;i<t.length;i++){var a,l=t.charAt(i);"/"===l?o+=8:is_digit(l)?o+=parseInt(l,10):(a=l<"a"?WHITE:BLACK,p({type:l.toLowerCase(),color:a},algebraic(o)),o++)}return v=n[1],-1<n[2].indexOf("K")&&(R.w|=BITS.KSIDE_CASTLE),-1<n[2].indexOf("Q")&&(R.w|=BITS.QSIDE_CASTLE),-1<n[2].indexOf("k")&&(R.b|=BITS.KSIDE_CASTLE),-1<n[2].indexOf("q")&&(R.b|=BITS.QSIDE_CASTLE),d="-"===n[3]?EMPTY:SQUARE_MAP[n[3]],f=parseInt(n[4],10),A=parseInt(n[5],10),s(O()),!0}function c(e){var r="No errors.",n="FEN string must contain six space-delimited fields.",t="6th field (move number) must be a positive integer.",o="5th field (half move counter) must be a non-negative integer.",i="4th field (en-passant square) is invalid.",a="3rd field (castling availability) is invalid.",l="2nd field (side to move) is invalid.",f="1st field (piece positions) does not contain 8 '/'-delimited rows.",u="1st field (piece positions) is invalid [consecutive numbers].",c="1st field (piece positions) is invalid [invalid piece].",s="1st field (piece positions) is invalid [row too large].",p="Illegal en-passant square";e=e.split(/\s+/);if(6!==e.length)return{valid:!1,error_number:1,error:n};if(isNaN(parseInt(e[5]))||parseInt(e[5],10)<=0)return{valid:!1,error_number:2,error:t};if(isNaN(parseInt(e[4]))||parseInt(e[4],10)<0)return{valid:!1,error_number:3,error:o};if(!/^(-|[abcdefgh][36])$/.test(e[3]))return{valid:!1,error_number:4,error:i};if(!/^(KQ?k?q?|Qk?q?|kq?|q|-)$/.test(e[2]))return{valid:!1,error_number:5,error:a};if(!/^(w|b)$/.test(e[1]))return{valid:!1,error_number:6,error:l};var S=e[0].split("/");if(8!==S.length)return{valid:!1,error_number:7,error:f};for(var A=0;A<S.length;A++){for(var E=0,g=!1,_=0;_<S[A].length;_++)if(isNaN(S[A][_])){if(!/^[prnbqkPRNBQK]$/.test(S[A][_]))return{valid:!1,error_number:9,error:c};E+=1,g=!1}else{if(g)return{valid:!1,error_number:8,error:u};E+=parseInt(S[A][_],10),g=!0}if(8!==E)return{valid:!1,error_number:10,error:s}}return"3"==e[3][1]&&"w"==e[1]||"6"==e[3][1]&&"b"==e[1]?{valid:!1,error_number:11,error:p}:{valid:!0,error_number:0,error:r}}function O(){for(var e,r,n=0,t="",o=SQUARE_MAP.a8;o<=SQUARE_MAP.h1;o++)null==I[o]?n++:(0<n&&(t+=n,n=0),e=I[o].color,r=I[o].type,t+=e===WHITE?r.toUpperCase():r.toLowerCase()),o+1&136&&(0<n&&(t+=n),o!==SQUARE_MAP.h1&&(t+="/"),n=0,o+=8);var i="",a=(R[WHITE]&BITS.KSIDE_CASTLE&&(i+="K"),R[WHITE]&BITS.QSIDE_CASTLE&&(i+="Q"),R[BLACK]&BITS.KSIDE_CASTLE&&(i+="k"),R[BLACK]&BITS.QSIDE_CASTLE&&(i+="q"),i=i||"-",d===EMPTY?"-":algebraic(d));return[t,v,i,a,f,A].join(" ")}function N(e){for(var r=0;r<e.length;r+=2)"string"==typeof e[r]&&"string"==typeof e[r+1]&&(T[e[r]]=e[r+1]);return T}function s(e){0<E.length||(e!==DEFAULT_POSITION?(T.SetUp="1",T.FEN=e):(delete T.SetUp,delete T.FEN))}function n(e){e=I[SQUARE_MAP[e]];return e?{type:e.type,color:e.color}:null}function p(e,r){if(!("type"in e&&"color"in e))return!1;if(-1===SYMBOLS.indexOf(e.type.toLowerCase()))return!1;if(!(r in SQUARE_MAP))return!1;r=SQUARE_MAP[r];return(e.type!=KING||P[e.color]==EMPTY||P[e.color]==r)&&(I[r]={type:e.type,color:e.color},e.type===KING&&(P[e.color]=r),s(O()),!0)}function C(e,r,n,t,o){r={color:v,from:r,to:n,flags:t,piece:e[r].type};return o&&(r.flags|=BITS.PROMOTION,r.promotion=o),e[n]?r.captured=e[n].type:t&BITS.EP_CAPTURE&&(r.captured=PAWN),r}function g(e){function r(e,r,n,t,o){if(e[n].type!==PAWN||rank(t)!==RANK_8&&rank(t)!==RANK_1)r.push(C(e,n,t,o));else for(var i=[QUEEN,ROOK,BISHOP,KNIGHT],a=0,l=i.length;a<l;a++)r.push(C(e,n,t,o,i[a]))}var n=[],t=v,o=swap_color(t),i={b:RANK_7,w:RANK_2},a=SQUARE_MAP.a8,l=SQUARE_MAP.h1,f=!1,u=!(void 0!==e&&"legal"in e)||e.legal,c=!(void 0!==e&&"piece"in e&&"string"==typeof e.piece)||e.piece.toLowerCase();if(void 0!==e&&"square"in e){if(!(e.square in SQUARE_MAP))return[];a=l=SQUARE_MAP[e.square],f=!0}for(var s,p,S=a;S<=l;S++)if(136&S)S+=7;else{var A=I[S];if(null!=A&&A.color===t)if(A.type!==PAWN||!0!==c&&c!==PAWN){if(!0===c||c===A.type)for(var E=0,g=PIECE_OFFSETS[A.type].length;E<g;E++)for(var _=PIECE_OFFSETS[A.type][E],T=S;;){if(136&(T+=_))break;if(null!=I[T]){if(I[T].color===t)break;r(I,n,S,T,BITS.CAPTURE);break}if(r(I,n,S,T,BITS.NORMAL),"n"===A.type||"k"===A.type)break}}else{var T=S+PAWN_OFFSETS[t][0];for(null==I[T]&&(r(I,n,S,T,BITS.NORMAL),T=S+PAWN_OFFSETS[t][1],i[t]===rank(S)&&null==I[T]&&r(I,n,S,T,BITS.BIG_PAWN)),E=2;E<4;E++)136&(T=S+PAWN_OFFSETS[t][E])||(null!=I[T]&&I[T].color===o?r(I,n,S,T,BITS.CAPTURE):T===d&&r(I,n,S,d,BITS.EP_CAPTURE))}}if(!0!==c&&c!==KING||f&&l!==P[t]||(R[t]&BITS.KSIDE_CASTLE&&(p=(s=P[t])+2,null!=I[s+1]||null!=I[p]||B(o,P[t])||B(o,s+1)||B(o,p)||r(I,n,P[t],p,BITS.KSIDE_CASTLE)),R[t]&BITS.QSIDE_CASTLE&&(p=(s=P[t])-2,null!=I[s-1]||null!=I[s-2]||null!=I[s-3]||B(o,P[t])||B(o,s-1)||B(o,p)||r(I,n,P[t],p,BITS.QSIDE_CASTLE))),!u)return n;for(var h=[],S=0,g=n.length;S<g;S++)L(n[S]),K(t)||h.push(n[S]),y();return h}function _(e,r){var n="";return e.flags&BITS.KSIDE_CASTLE?n="O-O":e.flags&BITS.QSIDE_CASTLE?n="O-O-O":(e.piece!==PAWN&&(r=get_disambiguator(e,r),n+=e.piece.toUpperCase()+r),e.flags&(BITS.CAPTURE|BITS.EP_CAPTURE)&&(e.piece===PAWN&&(n+=algebraic(e.from)[0]),n+="x"),n+=algebraic(e.to),e.flags&BITS.PROMOTION&&(n+="="+e.promotion.toUpperCase())),L(e),t()&&(o()?n+="#":n+="+"),y(),n}function B(e,r){for(var n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)if(136&n)n+=7;else if(null!=I[n]&&I[n].color===e){var t=I[n],o=n-r,i=119+o;if(ATTACKS[i]&1<<SHIFTS[t.type])if(t.type===PAWN){if(0<o){if(t.color===WHITE)return!0}else if(t.color===BLACK)return!0}else{if("n"===t.type||"k"===t.type)return!0;for(var a=RAYS[i],l=n+a,f=!1;l!==r;){if(null!=I[l]){f=!0;break}l+=a}if(!f)return!0}}return!1}function K(e){return B(swap_color(e),P[e])}function t(){return K(v)}function o(){return t()&&0===g().length}function i(){return!t()&&0===g().length}function a(){for(var e={},r=[],n=0,t=0,o=SQUARE_MAP.a8;o<=SQUARE_MAP.h1;o++){var i,t=(t+1)%2;136&o?o+=7:(i=I[o])&&(e[i.type]=i.type in e?e[i.type]+1:1,i.type===BISHOP&&r.push(t),n++)}if(2===n)return!0;if(3===n&&(1===e[BISHOP]||1===e[KNIGHT]))return!0;if(n===e[BISHOP]+2){for(var a=0,l=r.length,o=0;o<l;o++)a+=r[o];if(0===a||a===l)return!0}return!1}function l(){for(var e=[],r={},n=!1;;){var t=y();if(!t)break;e.push(t)}for(;;){var o=O().split(" ").slice(0,4).join(" ");if(r[o]=o in r?r[o]+1:1,3<=r[o]&&(n=!0),!e.length)break;L(e.pop())}return n}function L(e){var r,n,t=v,o=swap_color(t);if(E.push({move:e,kings:{b:P.b,w:P.w},turn:v,castling:{b:R.b,w:R.w},ep_square:d,half_moves:f,move_number:A}),I[e.to]=I[e.from],I[e.from]=null,e.flags&BITS.EP_CAPTURE&&(v===BLACK?I[e.to-16]=null:I[e.to+16]=null),e.flags&BITS.PROMOTION&&(I[e.to]={type:e.promotion,color:t}),I[e.to].type===KING&&(P[I[e.to].color]=e.to,e.flags&BITS.KSIDE_CASTLE?(r=e.to-1,n=e.to+1,I[r]=I[n],I[n]=null):e.flags&BITS.QSIDE_CASTLE&&(r=e.to+1,n=e.to-2,I[r]=I[n],I[n]=null),R[t]=""),R[t])for(var i=0,a=ROOKS[t].length;i<a;i++)if(e.from===ROOKS[t][i].square&&R[t]&ROOKS[t][i].flag){R[t]^=ROOKS[t][i].flag;break}if(R[o])for(i=0,a=ROOKS[o].length;i<a;i++)if(e.to===ROOKS[o][i].square&&R[o]&ROOKS[o][i].flag){R[o]^=ROOKS[o][i].flag;break}d=e.flags&BITS.BIG_PAWN?"b"===v?e.to-16:e.to+16:EMPTY,e.piece===PAWN||e.flags&(BITS.CAPTURE|BITS.EP_CAPTURE)?f=0:f++,v===BLACK&&A++,v=swap_color(v)}function y(){var e=E.pop();if(null==e)return null;var r,n,t=e.move,e=(P=e.kings,v=e.turn,R=e.castling,d=e.ep_square,f=e.half_moves,A=e.move_number,v),o=swap_color(v);return I[t.from]=I[t.to],I[t.from].type=t.piece,I[t.to]=null,t.flags&BITS.CAPTURE?I[t.to]={type:t.captured,color:o}:t.flags&BITS.EP_CAPTURE&&(e=e===BLACK?t.to-16:t.to+16,I[e]={type:PAWN,color:o}),t.flags&(BITS.KSIDE_CASTLE|BITS.QSIDE_CASTLE)&&(t.flags&BITS.KSIDE_CASTLE?(r=t.to+1,n=t.to-1):t.flags&BITS.QSIDE_CASTLE&&(r=t.to-2,n=t.to+1),I[r]=I[n],I[n]=null),t}function U(e,r){for(var n=stripped_san(e),t=0;t<2;t++){if(t==PARSER_SLOPPY){if(!r)return null;var o,i,a,l,f=!1,u=n.match(/([pnbrqkPNBRQK])?([a-h][1-8])x?-?([a-h][1-8])([qrbnQRBN])?/);(u=u||n.match(/([pnbrqkPNBRQK])?([a-h]?[1-8]?)x?-?([a-h][1-8])([qrbnQRBN])?/))&&(o=u[1],i=u[2],a=u[3],l=u[4],1==i.length&&(f=!0))}for(var c=infer_piece_type(n),s=g({legal:!0,piece:o||c}),p=0,S=s.length;p<S;p++)switch(t){case PARSER_STRICT:if(n===stripped_san(_(s[p],s)))return s[p];break;case PARSER_SLOPPY:if(u){if(!(o&&o.toLowerCase()!=s[p].piece||SQUARE_MAP[i]!=s[p].from||SQUARE_MAP[a]!=s[p].to||l&&l.toLowerCase()!=s[p].promotion))return s[p];if(f){var A=algebraic(s[p].from);if(!(o&&o.toLowerCase()!=s[p].piece||SQUARE_MAP[a]!=s[p].to||i!=A[0]&&i!=A[1]||l&&l.toLowerCase()!=s[p].promotion))return s[p]}}}}return null}function S(e){var r,n=clone(e),t=(n.san=_(n,g({legal:!0})),n.to=algebraic(n.to),n.from=algebraic(n.from),"");for(r in BITS)BITS[r]&n.flags&&(t+=FLAGS[r]);return n.flags=t,n}return m(void 0===e?DEFAULT_POSITION:e),{load:function(e){return m(e)},reset:b,moves:function(e){for(var r=g(e),n=[],t=0,o=r.length;t<o;t++)void 0!==e&&"verbose"in e&&e.verbose?n.push(S(r[t])):n.push(_(r[t],g({legal:!0})));return n},in_check:t,in_checkmate:o,in_stalemate:i,in_draw:function(){return 100<=f||i()||a()||l()},insufficient_material:a,in_threefold_repetition:l,game_over:function(){return 100<=f||o()||i()||a()||l()},validate_fen:c,fen:O,board:function(){for(var e=[],r=[],n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)null==I[n]?r.push(null):r.push({square:algebraic(n),type:I[n].type,color:I[n].color}),n+1&136&&(e.push(r),r=[],n+=8);return e},pgn:function(e){var t="object"==typeof e&&"string"==typeof e.newline_char?e.newline_char:"\n",o="object"==typeof e&&"number"==typeof e.max_width?e.max_width:0,i=[],r=!1;for(S in T)i.push("["+S+' "'+T[S]+'"]'+t),r=!0;r&&E.length&&i.push(t);function n(e){var r=h[O()];return e=void 0!==r?e+(0<e.length?" ":"")+`{${r}}`:e}for(var a=[];0<E.length;)a.push(y());var l=[],f="";for(0===a.length&&l.push(n(""));0<a.length;){f=n(f);var u,c=a.pop();E.length||"b"!==c.color?"w"===c.color&&(f.length&&l.push(f),f=A+"."):(u=A+". ...",f=f?f+" "+u:u),f=f+" "+_(c,g({legal:!0})),L(c)}if(f.length&&l.push(n(f)),void 0!==T.Result&&l.push(T.Result),0===o)return i.join("")+l.join(" ");for(var s=function(){return 0<i.length&&" "===i[i.length-1]&&(i.pop(),!0)},p=0,S=0;S<l.length;S++)p+l[S].length>o&&l[S].includes("{")?p=function(e,r){for(var n of r.split(" "))if(n){if(e+n.length>o){for(;s();)e--;i.push(t),e=0}i.push(n),e+=n.length,i.push(" "),e++}return s()&&e--,e}(p,l[S]):(p+l[S].length>o&&0!==S?(" "===i[i.length-1]&&i.pop(),i.push(t),p=0):0!==S&&(i.push(" "),p++),i.push(l[S]),p+=l[S].length);return i.join("")},load_pgn:function(e,r){var n=void 0!==r&&"sloppy"in r&&r.sloppy;function l(e){return e.replace(/\\/g,"\\")}e=e.trim();var t,o="object"==typeof r&&"string"==typeof r.newline_char?r.newline_char:"\r?\n",i=new RegExp("^(\\[((?:"+l(o)+")|.)*\\])(?:\\s*"+l(o)+"){2}"),i=i.test(e)?i.exec(e)[1]:"",a=(b(),function(e,r){for(var r="object"==typeof r&&"string"==typeof r.newline_char?r.newline_char:"\r?\n",n={},t=e.split(new RegExp(l(r))),o=0;o<t.length;o++){var i=/^\s*\[([A-Za-z]+)\s*"(.*)"\s*\]\s*$/,a=t[o].replace(i,"$1"),i=t[o].replace(i,"$2");0<trim(a).length&&(n[a]=i)}return n}(i,r)),f="";for(t in a)"fen"===t.toLowerCase()&&(f=a[t]),N([t,a[t]]);if(n){if(f&&!m(f,!0))return!1}else if("1"===a.SetUp&&!("FEN"in a&&m(a.FEN,!0)))return!1;function u(e){return e=e.replace(new RegExp(l(o),"g")," "),`{${c(e.slice(1,e.length-1))}}`}for(var c=function(e){return Array.from(e).map(function(e){return e.charCodeAt(0)<128?e.charCodeAt(0).toString(16):encodeURIComponent(e).replace(/\%/g,"").toLowerCase()}).join("")},s=function(e){return 0==e.length?"":decodeURIComponent("%"+e.match(/.{1,2}/g).join("%"))},p=e.replace(i,"").replace(new RegExp(`({[^}]*})+?|;([^${l(o)}]*)`,"g"),function(e,r,n){return void 0!==r?u(r):" "+u(`{${n.slice(1)}}`)}).replace(new RegExp(l(o),"g")," "),S=/(\([^\(\)]+\))+?/g;S.test(p);)p=p.replace(S,"");for(var A=(A=trim(p=(p=(p=p.replace(/\d+\.(\.\.)?/g,"")).replace(/\.\.\./g,"")).replace(/\$\d+/g,"")).split(new RegExp(/\s+/))).join(",").replace(/,,+/g,",").split(","),E="",g=0;g<A.length;g++){var _=function(e){if(e.startsWith("{")&&e.endsWith("}"))return s(e.slice(1,e.length-1))}(A[g]);if(void 0!==_)h[O()]=_;else if(null==(_=U(A[g],n))){if(!(-1<TERMINATION_MARKERS.indexOf(A[g])))return!1;E=A[g]}else E="",L(_)}return E&&Object.keys(T).length&&!T.Result&&N(["Result",E]),!0},header:function(){return N(arguments)},turn:function(){return v},move:function(e,r){var r=void 0!==r&&"sloppy"in r&&r.sloppy,n=null;if("string"==typeof e)n=U(e,r);else if("object"==typeof e)for(var t=g(),o=0,i=t.length;o<i;o++)if(!(e.from!==algebraic(t[o].from)||e.to!==algebraic(t[o].to)||"promotion"in t[o]&&e.promotion!==t[o].promotion)){n=t[o];break}if(!n)return null;r=S(n);return L(n),r},undo:function(){var e=y();return e?S(e):null},clear:function(){return u()},put:p,get:n,ascii(){for(var e,r="   +------------------------+\n",n=SQUARE_MAP.a8;n<=SQUARE_MAP.h1;n++)0===file(n)&&(r+=" "+"87654321"[rank(n)]+" |"),null==I[n]?r+=" . ":(e=I[n].type,r+=" "+(I[n].color===WHITE?e.toUpperCase():e.toLowerCase())+" "),n+1&136&&(r+="|\n",n+=8);return r=r+"   +------------------------+\n"+"     a  b  c  d  e  f  g  h"},remove:function(e){return r=n(e=e),I[SQUARE_MAP[e]]=null,r&&r.type===KING&&(P[r.color]=EMPTY),s(O()),r;var r},perft:function e(r){for(var n=g({legal:!1}),t=0,o=v,i=0,a=n.length;i<a;i++)L(n[i]),K(o)||(0<r-1?t+=e(r-1):t++),y();return t},square_color:function(e){return e in SQUARE_MAP?(rank(e=SQUARE_MAP[e])+file(e))%2==0?"light":"dark":null},history:function(e){for(var r=[],n=[],t=(void 0!==e&&"verbose"in e&&e.verbose);0<E.length;)r.push(y());for(;0<r.length;){var o=r.pop();t?n.push(S(o)):n.push(_(o,g({legal:!0}))),L(o)}return n},get_comment:function(){return h[O()]},set_comment:function(e){h[O()]=e.replace("{","[").replace("}","]")},delete_comment:function(){var e=h[O()];return delete h[O()],e},get_comments:function(){return r(),Object.keys(h).map(function(e){return{fen:e,comment:h[e]}})},delete_comments:function(){return r(),Object.keys(h).map(function(e){var r=h[e];return delete h[e],{fen:e,comment:r}})}}};
 window.Chess = Chess;
 </script>
 <style>
-  /* ---- lichess-inspired palette: near-black header, off-white page, green accent ---- */
   :root{
     --bg:#f0f1f3; --bg2:#ffffff; --header:#1b1c1c; --panel:#ffffff; --panel2:#f5f6f8;
     --border:#dcdfe3; --text:#4a4a4a; --text-bright:#1b1c1c; --text2:#8a8d92;
@@ -69,6 +68,8 @@ window.Chess = Chess;
   .player-bar .sub{color:var(--text2);font-size:12px;}
   .clock{font-variant-numeric:tabular-nums;font-size:19px;font-weight:700;background:var(--panel2);border:1px solid var(--border);padding:6px 14px;border-radius:4px;min-width:78px;text-align:center;color:var(--text-bright);}
   .clock.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .clock.low{background:var(--bad);color:#fff;border-color:var(--bad);}
+  .thinking-dots{display:inline-block;min-width:14px;}
 
   .boardwrap{display:flex;}
   .boardgrid{width:min(88vw,480px);height:min(88vw,480px);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:2px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.18);touch-action:none;}
@@ -78,6 +79,7 @@ window.Chess = Chess;
   .sq.lastmove{background-image:linear-gradient(rgba(155,199,0,.41),rgba(155,199,0,.41));}
   .sq.premove-sel{box-shadow:inset 0 0 0 3px rgba(210,60,60,.8);}
   .sq.premove-mark{background-image:linear-gradient(rgba(210,60,60,.4),rgba(210,60,60,.4));}
+  .sq.checksq{box-shadow:inset 0 0 12px 4px rgba(220,53,69,.85);}
   .sq .dot{position:absolute;width:24%;height:24%;border-radius:50%;background:rgba(20,20,20,.28);}
   .sq .dot.premove-dot{background:rgba(190,40,40,.6);}
   .sq .ring{position:absolute;width:86%;height:86%;border-radius:50%;box-shadow:inset 0 0 0 4px rgba(20,20,20,.24);}
@@ -111,13 +113,16 @@ window.Chess = Chess;
   button:disabled{opacity:.4;cursor:default;}
   select{background:var(--panel2);color:var(--text-bright);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:13px;width:100%;}
   label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600;}
-  textarea,input[type=text]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;font-family:monospace;}
+  textarea,input[type=text],input[type=number]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;font-family:monospace;}
   textarea{resize:vertical;min-height:50px;}
 
   #status,.status{font-size:14px;min-height:20px;color:var(--green);font-weight:700;}
   .status.bad{color:var(--bad);}
   .status.good{color:var(--good);}
   .badge{font-size:11px;background:var(--panel2);border:1px solid var(--border);padding:2px 8px;border-radius:10px;color:var(--text2);font-weight:600;}
+  .badge.win{background:#e5f1d9;color:var(--good);border-color:#c9e2b0;}
+  .badge.loss{background:#fbe2e5;color:var(--bad);border-color:#f3c1c8;}
+  .badge.draw{background:#eef0f2;color:var(--text2);}
 
   .evalbar{width:20px;height:min(88vw,480px);background:#1b1c1c;border-radius:2px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;border:1px solid #000;}
   .evalbar .whitefill{background:#f5f5f5;width:100%;transition:height .2s;}
@@ -134,6 +139,23 @@ window.Chess = Chess;
   .rules-grid h3{color:var(--green);margin-top:24px;}
   .rules-grid p{line-height:1.7;}
 
+  .bot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-width:1000px;margin:0 auto;padding:0 20px 30px;}
+  .bot-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:8px;}
+  .bot-card .bot-head{display:flex;align-items:center;gap:10px;}
+  .bot-avatar{width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .bot-card .bot-name{font-weight:700;color:var(--text-bright);font-size:14.5px;}
+  .bot-card .bot-meta{color:var(--text2);font-size:12px;}
+  .bot-card .btnrow{margin-top:auto;}
+  .bot-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-bright);padding:6px 0;border-bottom:1px solid var(--border);}
+  .bot-check:last-child{border-bottom:none;}
+  .create-bot-panel{max-width:1000px;margin:0 auto 18px;padding:0 20px;}
+  table.standings{width:100%;border-collapse:collapse;font-size:13px;}
+  table.standings th,table.standings td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);}
+  table.standings th{color:var(--text2);text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;}
+  table.standings tr.you td{font-weight:700;color:var(--text-bright);}
+  .round-list{display:flex;flex-direction:column;gap:8px;}
+  .round-item{display:flex;align-items:center;justify-content:space-between;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:8px 12px;}
+  .round-item .rlabel{font-size:13px;}
   @media (max-width:900px){ .navside input{display:none;} }
 </style>
 </head>
@@ -152,7 +174,7 @@ window.Chess = Chess;
     <div class="navitem" data-view="tools">Tools</div>
   </div>
   <div class="navside">
-    <span class="badge" id="eloBadge" title="Your rating, saved locally for this anonymous account" style="margin-right:4px">Rating —</span>
+    <span class="badge" id="eloBadge" title="Deine Elo, lokal für diesen anonymen Account gespeichert" style="margin-right:4px">Rating —</span>
     <button class="navbtn ghost">Sign in</button>
     <button class="navbtn">Register</button>
   </div>
@@ -186,12 +208,12 @@ window.Chess = Chess;
   <div class="layout">
     <div class="board-col">
       <div class="player-bar">
-        <div><div class="name" id="topName">Computer</div><div class="sub" id="topSub">Level 3</div></div>
+        <div><div class="name" id="topName">Computer</div><div class="sub" id="topSub">Level 3 · Rating ~1350</div></div>
         <div class="clock" id="clockTop">5:00</div>
       </div>
       <div class="boardgrid" id="playBoard"></div>
       <div class="player-bar">
-        <div><div class="name">You</div><div class="sub">White</div></div>
+        <div><div class="name">Du</div><div class="sub" id="bottomSub">Weiß</div></div>
         <div class="clock" id="clockBottom">5:00</div>
       </div>
       <div class="status" id="status"></div>
@@ -200,13 +222,8 @@ window.Chess = Chess;
     <div class="side-col">
       <div class="panel">
         <h3>New Game</h3>
-        <label>Computer strength (Level 1–8)</label>
-        <select id="levelSelect">
-          <option value="1">Level 1 (very easy)</option><option value="2">Level 2</option>
-          <option value="3" selected>Level 3</option><option value="4">Level 4</option>
-          <option value="5">Level 5</option><option value="6">Level 6</option>
-          <option value="7">Level 7</option><option value="8">Level 8 (strong)</option>
-        </select><br><br>
+        <label>Gegner</label>
+        <select id="botSelect"></select><br><br>
         <label>Time control</label>
         <select id="tcSelect">
           <option value="0.25|0">15 + 0 UltraBullet</option>
@@ -231,7 +248,7 @@ window.Chess = Chess;
           <button id="undoBtn">Undo move</button>
           <button id="cancelPremoveBtn">Cancel premove</button>
         </div>
-        <p style="margin:10px 0 0;font-size:11.5px;color:var(--text2)">Tip: click a piece and target square while it's the computer's turn to queue a premove (right-click the board to cancel it).</p>
+        <p style="margin:10px 0 0;font-size:11.5px;color:var(--text2)">Tipp: Der Bot denkt länger, je mehr Bedenkzeit er noch hat, und je höher sein Level ist — bei knapper Zeit spielt er schneller. Klicke eine Figur und ein Zielfeld während der Bot am Zug ist, um einen Premove zu setzen (Rechtsklick aufs Brett, um ihn abzubrechen).</p>
       </div>
       <div class="panel">
         <h3>Move list</h3>
@@ -268,6 +285,49 @@ window.Chess = Chess;
           <button class="primary" id="puzzleNextBtn">Next puzzle</button>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BOTS ================= -->
+<section class="view" id="view-bots">
+  <div class="hero"><h1>Bots</h1><p>Spiele gegen abgestufte Bots (Level 1–8) oder erstelle deine eigenen für Turniere.</p></div>
+  <div class="create-bot-panel">
+    <div class="panel">
+      <h3>Eigenen Bot erstellen</h3>
+      <div class="btnrow" style="align-items:flex-end">
+        <div style="flex:2;min-width:160px"><label>Name</label><input type="text" id="botNameInput" placeholder="z.B. Endspiel-Emma"></div>
+        <div style="flex:1;min-width:120px"><label>Level (1–8)</label>
+          <select id="botLevelInput">
+            <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option>
+          </select>
+        </div>
+        <button class="primary" id="createBotBtn">Bot erstellen</button>
+      </div>
+    </div>
+  </div>
+  <div class="bot-grid" id="botGrid"></div>
+</section>
+
+<!-- ================= TOURNAMENTS ================= -->
+<section class="view" id="view-tournaments">
+  <div class="hero"><h1>Tournaments</h1><p>Stelle ein Rundenturnier mit Bots zusammen und spiele deine Partien selbst.</p></div>
+  <div class="layout" style="align-items:flex-start">
+    <div class="side-col" style="max-width:480px">
+      <div class="panel" id="tournamentSetupPanel">
+        <h3>Neues Turnier</h3>
+        <label>Turniername</label>
+        <input type="text" id="tournamentNameInput" placeholder="z.B. Sommer-Arena" style="margin-bottom:10px">
+        <label>Teilnehmende Bots</label>
+        <div id="tournamentBotList"></div>
+        <br>
+        <button class="primary" id="createTournamentBtn" style="width:100%">Turnier erstellen (Rundenturnier)</button>
+        <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">Deine Partien spielst du live auf dem Brett. Partien zwischen zwei Bots werden anhand ihrer Stärke sofort simuliert.</p>
+      </div>
+    </div>
+    <div class="side-col" style="max-width:600px" id="tournamentActivePanel" style="display:none">
     </div>
   </div>
 </section>
@@ -363,14 +423,14 @@ window.Chess = Chess;
   <div class="notice-box">
     <h2>Watch</h2>
     <p>Watching other people's live games requires a running server that broadcasts moves in real time. This build of Kordava Chess is a single static file with no backend, so live spectating isn't possible here.</p>
-    <p style="color:var(--text2)">Everything on this page (Play, Puzzles, Analysis, Learn) runs entirely in your browser and needs no server.</p>
+    <p style="color:var(--text2)">Everything on this page (Play, Puzzles, Bots, Tournaments, Analysis, Learn) runs entirely in your browser and needs no server.</p>
   </div>
 </section>
 <section class="view" id="view-notice-community">
   <div class="notice-box">
     <h2>Community</h2>
     <p>Player profiles, teams and forums need accounts and a database on a server. This build of Kordava Chess is a single static file with no backend, so those features aren't available here.</p>
-    <p style="color:var(--text2)">Everything on this page (Play, Puzzles, Analysis, Learn) runs entirely in your browser and needs no server.</p>
+    <p style="color:var(--text2)">Everything on this page (Play, Puzzles, Bots, Tournaments, Analysis, Learn) runs entirely in your browser and needs no server.</p>
   </div>
 </section>
 
@@ -412,6 +472,7 @@ function squareId(file, rank){ return 'abcdefgh'[file] + (rank+1); }
 function paintBoard(containerEl, chessInstance, orientation, selectedSquare, legalTargets, lastMove, premoveInfo){
   containerEl.innerHTML = '';
   const flip = orientation === 'b';
+  const kingInCheckSq = (chessInstance.in_check && chessInstance.in_check()) ? findKingSquare(chessInstance, chessInstance.turn()) : null;
   for(let displayRank = 7; displayRank >= 0; displayRank--){
     for(let displayFile = 0; displayFile < 8; displayFile++){
       const rank = flip ? 7 - displayRank : displayRank;
@@ -424,6 +485,7 @@ function paintBoard(containerEl, chessInstance, orientation, selectedSquare, leg
 
       if(lastMove && (lastMove.from === sqName || lastMove.to === sqName)) div.classList.add('lastmove');
       if(selectedSquare === sqName) div.classList.add('selected');
+      if(kingInCheckSq === sqName) div.classList.add('checksq');
       if(premoveInfo){
         if(premoveInfo.selSquare === sqName) div.classList.add('premove-sel');
         if(premoveInfo.from === sqName || premoveInfo.to === sqName) div.classList.add('premove-mark');
@@ -448,6 +510,14 @@ function paintBoard(containerEl, chessInstance, orientation, selectedSquare, leg
       containerEl.appendChild(div);
     }
   }
+}
+function findKingSquare(g, color){
+  const board = g.board();
+  for(let r=0;r<8;r++) for(let f=0;f<8;f++){
+    const cell = board[r][f];
+    if(cell && cell.type==='k' && cell.color===color) return cell.square;
+  }
+  return null;
 }
 
 /* Generic tap + drag-and-drop interaction for any board. tapHandler(sqName)
@@ -515,6 +585,119 @@ function makeBoardInteractive(containerEl, tapHandler){
 }
 
 /* ============================================================
+   PERSISTENT ANONYMOUS ACCOUNT: RATING + CUSTOM BOTS
+   Everything lives in localStorage so it survives reloads without
+   any sign-in, similar to how a guest account keeps a rating.
+   ============================================================ */
+const LS_RATING = 'kordava_rating_v1';
+const LS_BOTS = 'kordava_custom_bots_v1';
+const LS_STATS = 'kordava_stats_v1';
+
+function loadRating(){
+  const v = parseFloat(localStorage.getItem(LS_RATING));
+  return isNaN(v) ? 1200 : v;
+}
+function saveRating(r){ localStorage.setItem(LS_RATING, String(Math.round(r))); renderEloBadge(); }
+let myRating = loadRating();
+
+function loadStats(){
+  try { return JSON.parse(localStorage.getItem(LS_STATS)) || {w:0,l:0,d:0}; } catch(e){ return {w:0,l:0,d:0}; }
+}
+function saveStats(s){ localStorage.setItem(LS_STATS, JSON.stringify(s)); }
+let myStats = loadStats();
+
+function renderEloBadge(){
+  const el = document.getElementById('eloBadge');
+  el.textContent = 'Rating ' + Math.round(myRating);
+}
+renderEloBadge();
+
+/* Standard Elo update. score: 1 win / 0.5 draw / 0 loss (from the human's perspective). */
+function updateEloAfterGame(opponentRating, score){
+  const K = 32;
+  const expected = 1 / (1 + Math.pow(10, (opponentRating - myRating) / 400));
+  myRating = myRating + K * (score - expected);
+  if(myRating < 100) myRating = 100;
+  saveRating(myRating);
+  if(score === 1) myStats.w++; else if(score === 0) myStats.l++; else myStats.d++;
+  saveStats(myStats);
+}
+
+/* ---- Bot roster ---- */
+const BOT_NAMES = ['Anfänger Anna','Bauer Ben','Rochade Rita','Läufer Lars','Springer Sina','Turm Theo','Dame Dana','Stahl-Stefan'];
+function defaultBots(){
+  const arr = [];
+  for(let lvl=1; lvl<=8; lvl++){
+    arr.push({ id: 'std'+lvl, name: BOT_NAMES[lvl-1], level: lvl, rating: 400 + lvl*230, custom:false });
+  }
+  return arr;
+}
+function loadCustomBots(){
+  try { return JSON.parse(localStorage.getItem(LS_BOTS)) || []; } catch(e){ return []; }
+}
+function saveCustomBots(list){ localStorage.setItem(LS_BOTS, JSON.stringify(list)); }
+function allBots(){ return defaultBots().concat(loadCustomBots()); }
+function botById(id){ return allBots().find(b => b.id === id); }
+
+document.getElementById('createBotBtn').addEventListener('click', () => {
+  const nameEl = document.getElementById('botNameInput');
+  const lvlEl = document.getElementById('botLevelInput');
+  const name = nameEl.value.trim();
+  if(!name){ nameEl.focus(); return; }
+  const level = parseInt(lvlEl.value, 10);
+  const list = loadCustomBots();
+  const id = 'custom_' + Date.now();
+  list.push({ id, name, level, rating: 400 + level*230, custom:true });
+  saveCustomBots(list);
+  nameEl.value = '';
+  renderBotGrid();
+  renderTournamentBotList();
+  renderBotSelect();
+});
+
+function deleteBot(id){
+  const list = loadCustomBots().filter(b => b.id !== id);
+  saveCustomBots(list);
+  renderBotGrid(); renderTournamentBotList(); renderBotSelect();
+}
+
+function renderBotGrid(){
+  const grid = document.getElementById('botGrid');
+  grid.innerHTML = '';
+  allBots().forEach(bot => {
+    const card = document.createElement('div');
+    card.className = 'bot-card';
+    const initials = bot.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    card.innerHTML = '<div class="bot-head"><div class="bot-avatar">'+initials+'</div>'
+      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · Rating ~'+bot.rating+(bot.custom?' · eigener Bot':'')+'</div></div></div>';
+    const row = document.createElement('div'); row.className = 'btnrow';
+    const playBtn = document.createElement('button'); playBtn.className='primary'; playBtn.textContent='Spielen';
+    playBtn.addEventListener('click', () => { showView('home'); startNewGame(undefined, bot.id); });
+    row.appendChild(playBtn);
+    if(bot.custom){
+      const delBtn = document.createElement('button'); delBtn.textContent='Löschen';
+      delBtn.addEventListener('click', () => deleteBot(bot.id));
+      row.appendChild(delBtn);
+    }
+    card.appendChild(row);
+    grid.appendChild(card);
+  });
+}
+function renderBotSelect(){
+  const sel = document.getElementById('botSelect');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  allBots().forEach(bot => {
+    const opt = document.createElement('option');
+    opt.value = bot.id;
+    opt.textContent = bot.name + ' (Lvl ' + bot.level + ', ~' + bot.rating + ')';
+    sel.appendChild(opt);
+  });
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value = prev;
+  else sel.value = 'std3';
+}
+
+/* ============================================================
    VIEW ROUTER
    ============================================================ */
 function showView(name){
@@ -526,6 +709,8 @@ function showView(name){
 
   if(name === 'puzzles' && !puzzleState.loaded) loadPuzzle(0);
   if(name === 'analysis' && !analysisState.initialized) initAnalysis();
+  if(name === 'bots') renderBotGrid();
+  if(name === 'tournaments') { renderTournamentBotList(); renderTournamentActive(); }
 }
 document.querySelectorAll('[data-view]').forEach(el => {
   el.addEventListener('click', () => showView(el.dataset.view));
@@ -546,22 +731,27 @@ let clockTimer = null;
 let times = { w: 300, b: 300 };
 let increment = 0;
 let gameOver = false;
-let compLevel = 3;
+let currentBot = null; // {id,name,level,rating,custom}
 let startFen = null;
+let thinkingTimer = null;
 
 // Premove: a queued move the human made while it wasn't their turn yet.
-// { from, to, promotion } | null. premoveSelSquare / premoveTargets drive
-// the selection UI while queuing a premove.
 let premove = null;
 let premoveSelSquare = null;
 let premoveTargets = [];
+
+// Set by the tournament module before starting a game vs a bot, so the
+// result can be recorded back into the tournament when the game ends.
+let activeTournamentMatch = null; // { matchIndex }
 
 const boardEl = document.getElementById('playBoard');
 const statusEl = document.getElementById('status');
 const movesEl = document.getElementById('moves');
 const clockTopEl = document.getElementById('clockTop');
 const clockBottomEl = document.getElementById('clockBottom');
+const topNameEl = document.getElementById('topName');
 const topSubEl = document.getElementById('topSub');
+const bottomSubEl = document.getElementById('bottomSub');
 const pgnBox = document.getElementById('pgnBox');
 const fenBox = document.getElementById('fenBox');
 
@@ -582,9 +772,6 @@ function clearPremove(){
   renderPlayBoard();
 }
 
-/* Plausible destination squares for a premove: compute moves as if it were
-   already the human's turn on the current position. Re-validated for real
-   legality the moment it's actually played. */
 function getPremoveTargets(sqName){
   const parts = game.fen().split(' ');
   parts[1] = humanColor;
@@ -598,7 +785,6 @@ function onSquareClick(sqName){
   if(gameOver) return;
   if(viewPly !== history.length) return;
 
-  // Not our turn yet -> premove selection mode.
   if(game.turn() !== humanColor){
     const piece = game.get(sqName);
     if(premoveSelSquare){
@@ -659,7 +845,7 @@ function makeMove(from, to, promotion){
   else if(times.w !== null){ times[move.color] += increment; updateClockDisplay(); }
   syncPanels(); renderPlayBoard(); checkGameEnd();
   if(!gameOver && game.turn() !== humanColor){
-    setTimeout(computerMove, 260);
+    scheduleComputerMove();
   } else if(!gameOver && game.turn() === humanColor && premove){
     const pm = premove; premove = null;
     const stillLegal = game.moves({ square: pm.from, verbose: true }).some(m => m.to === pm.to);
@@ -692,6 +878,8 @@ function updateClockDisplay(){
   clockBottomEl.textContent = fmtTime(times[bottomColor]);
   clockTopEl.classList.toggle('active', game.turn() === topColor && !gameOver);
   clockBottomEl.classList.toggle('active', game.turn() === bottomColor && !gameOver);
+  clockTopEl.classList.toggle('low', times[topColor] !== null && times[topColor] <= 20);
+  clockBottomEl.classList.toggle('low', times[bottomColor] !== null && times[bottomColor] <= 20);
 }
 function checkGameEnd(){
   if(game.in_checkmate()){
@@ -704,7 +892,29 @@ function checkGameEnd(){
   else if(game.in_check()){ statusEl.textContent = (game.turn()==='w'?'White':'Black') + ' is in check'; }
   else { statusEl.textContent = ''; }
 }
-function endGame(message, result){ gameOver = true; stopClock(); statusEl.textContent = message + ' (' + result + ')'; updateClockDisplay(); }
+function endGame(message, result){
+  gameOver = true; stopClock();
+  if(thinkingTimer){ clearTimeout(thinkingTimer); thinkingTimer = null; }
+  statusEl.textContent = message + ' (' + result + ')';
+  updateClockDisplay();
+
+  // Anonymous Elo update, only for real games vs a bot (not analysis).
+  if(currentBot){
+    let score = 0.5;
+    if(result === '1-0') score = humanColor === 'w' ? 1 : 0;
+    else if(result === '0-1') score = humanColor === 'b' ? 1 : 0;
+    updateEloAfterGame(currentBot.rating, score);
+    statusEl.textContent += '  ·  Neues Rating: ' + Math.round(myRating);
+  }
+
+  if(activeTournamentMatch){
+    let userScore = 0.5;
+    if(result === '1-0') userScore = humanColor === 'w' ? 1 : 0;
+    else if(result === '0-1') userScore = humanColor === 'b' ? 1 : 0;
+    recordTournamentUserResult(activeTournamentMatch.matchIndex, userScore);
+    activeTournamentMatch = null;
+  }
+}
 
 function evaluateBoard(g){
   let score = 0;
@@ -724,15 +934,20 @@ function minimax(g, depth, alpha, beta, maximizing){
     return best;
   }
 }
-function computerMove(){
-  if(gameOver) return;
+
+/* Strength per level: search depth + chance of a random "blunder" move
+   instead of the computed best move. Higher level = deeper search,
+   fewer blunders, closer to real chess strength. */
+const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:2, 4:2, 5:3, 6:3, 7:4, 8:5};
+const BLUNDER_BY_LEVEL = {1:.55,2:.40,3:.25,4:.15,5:.08,6:.04,7:.015,8:0};
+
+function pickComputerMove(){
+  const level = currentBot ? currentBot.level : 3;
   const moves = game.moves({verbose:true});
-  if(moves.length === 0) return;
-  const depthByLevel = {1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4};
-  const blunderChance = {1:.55,2:.4,3:.25,4:.15,5:.08,6:.04,7:.01,8:0};
-  const depth = depthByLevel[compLevel] || 2;
-  if(Math.random() < (blunderChance[compLevel] || 0)){
-    playComputerMove(moves[Math.floor(Math.random()*moves.length)]); return;
+  if(moves.length === 0) return null;
+  const depth = DEPTH_BY_LEVEL[level] || 2;
+  if(Math.random() < (BLUNDER_BY_LEVEL[level] || 0)){
+    return moves[Math.floor(Math.random()*moves.length)];
   }
   const maximizing = game.turn() === 'w';
   let bestScore = maximizing ? -Infinity : Infinity, bestMoves = [];
@@ -743,7 +958,37 @@ function computerMove(){
     if(maximizing ? score > bestScore : score < bestScore){ bestScore = score; bestMoves = [m]; }
     else if(score === bestScore) bestMoves.push(m);
   }
-  playComputerMove(bestMoves[Math.floor(Math.random()*bestMoves.length)]);
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+
+/* How long the bot "thinks" before moving: depends on its level (stronger
+   bots ponder longer) and on how much of its own clock is left (running
+   low on time makes it play fast and instinctively, like a human blitzing
+   out moves on low time). No effect when the clock is off (untimed game). */
+function getThinkDelayMs(){
+  const level = currentBot ? currentBot.level : 3;
+  const botColor = humanColor === 'w' ? 'b' : 'w';
+  const botTime = times[botColor];
+  const baseMin = 120 + level*40;      // faster bots barely pause
+  const baseMax = 350 + level*260;     // stronger bots ponder much longer
+  let delay = baseMin + Math.random()*(baseMax-baseMin);
+  if(botTime !== null){
+    if(botTime <= 8) delay = Math.min(delay, 90 + Math.random()*120);        // near flag: blitz it out
+    else if(botTime <= 25) delay *= 0.35;                                     // low on time: hurry up
+    else if(botTime <= 60) delay *= 0.65;
+    else if(botTime > 240) delay *= 1.15;                                    // plenty of time: take a bit longer
+  }
+  return Math.round(Math.min(delay, 2600));
+}
+function scheduleComputerMove(){
+  if(thinkingTimer) clearTimeout(thinkingTimer);
+  thinkingTimer = setTimeout(() => { thinkingTimer = null; computerMove(); }, getThinkDelayMs());
+}
+function computerMove(){
+  if(gameOver) return;
+  const m = pickComputerMove();
+  if(!m) return;
+  playComputerMove(m);
 }
 function playComputerMove(m){ makeMove(m.from, m.to, m.promotion); }
 
@@ -803,16 +1048,23 @@ document.querySelectorAll('.tcbtn').forEach(btn => {
   });
 });
 
-function startNewGame(fen){
+function startNewGame(fen, botIdOverride){
   stopClock();
+  if(thinkingTimer){ clearTimeout(thinkingTimer); thinkingTimer = null; }
   game = new Chess();
   startFen = fen || null;
   if(fen) game.load(fen);
   history = []; viewPly = 0; lastMove = null; selectedSquare = null; legalTargets = []; gameOver = false;
   premove = null; premoveSelSquare = null; premoveTargets = [];
   statusEl.textContent = '';
-  compLevel = parseInt(document.getElementById('levelSelect').value, 10);
-  topSubEl.textContent = 'Level ' + compLevel;
+
+  const botSelect = document.getElementById('botSelect');
+  const botId = botIdOverride || botSelect.value || 'std3';
+  currentBot = botById(botId) || defaultBots()[2];
+  if(botIdOverride) botSelect.value = currentBot.id;
+  topNameEl.textContent = currentBot.name;
+  topSubEl.textContent = 'Level ' + currentBot.level + ' · Rating ~' + currentBot.rating;
+
   const tcValue = document.getElementById('tcSelect').value;
   const [tcMin, tcInc] = tcValue.split('|').map(Number);
   if(tcValue === '0|0'){ times = { w:null, b:null }; increment = 0; }
@@ -820,15 +1072,15 @@ function startNewGame(fen){
   const colorChoice = document.getElementById('colorSelect').value;
   humanColor = colorChoice === 'r' ? (Math.random()<0.5?'w':'b') : colorChoice;
   boardOrientation = humanColor;
+  bottomSubEl.textContent = humanColor === 'w' ? 'Weiß' : 'Schwarz';
   syncPanels(); renderPlayBoard(); updateClockDisplay();
-  if(game.turn() !== humanColor) setTimeout(computerMove, 400);
+  if(game.turn() !== humanColor) scheduleComputerMove();
 }
+renderBotSelect();
 startNewGame();
 
 /* ============================================================
    PUZZLES
-   Each puzzle is a hand-built, verified minimal position so the
-   solution can be checked exactly (single best move, UCI form).
    ============================================================ */
 const PUZZLES = [
   {
@@ -877,7 +1129,7 @@ function loadPuzzle(index){
   renderPuzzleBoard();
 }
 function renderPuzzleBoard(){
-  const orientation = puzzleState.game.turn(); // show board from the perspective of whoever moves
+  const orientation = puzzleState.game.turn();
   paintBoard(puzzleBoardEl, puzzleState.game, orientation, puzzleState.selected, puzzleState.targets, puzzleState.last);
   makeBoardInteractive(puzzleBoardEl, onPuzzleSquareClick);
 }
@@ -925,6 +1177,165 @@ document.getElementById('puzzleRetryBtn').addEventListener('click', () => loadPu
 document.getElementById('puzzleNextBtn').addEventListener('click', () => loadPuzzle((puzzleState.index + 1) % PUZZLES.length));
 
 /* ============================================================
+   TOURNAMENTS
+   A round-robin among "Du" (the human) and any selected bots.
+   Bot-vs-bot games are simulated instantly from an Elo expected
+   score (no live board needed for those). Your own games are
+   played for real on the main board, then the result flows back
+   into the standings automatically.
+   ============================================================ */
+let tournament = null; // { name, participants:[{id,name,rating,isHuman}], matches:[{aIdx,bIdx,result|null}], pointsByIdx }
+
+function renderTournamentBotList(){
+  const box = document.getElementById('tournamentBotList');
+  box.innerHTML = '';
+  allBots().forEach(bot => {
+    const row = document.createElement('label'); row.className = 'bot-check';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = bot.id; cb.dataset.botcheck = '1';
+    row.appendChild(cb);
+    const span = document.createElement('span'); span.textContent = bot.name + ' (Lvl ' + bot.level + ', ~' + bot.rating + ')';
+    row.appendChild(span);
+    box.appendChild(row);
+  });
+}
+
+document.getElementById('createTournamentBtn').addEventListener('click', () => {
+  const nameInput = document.getElementById('tournamentNameInput');
+  const checked = [...document.querySelectorAll('#tournamentBotList input[data-botcheck]:checked')].map(cb => botById(cb.value));
+  if(checked.length < 1){ alert('Wähle mindestens einen Bot aus.'); return; }
+  const participants = [{ id:'human', name:'Du', rating: myRating, isHuman:true }]
+    .concat(checked.map(b => ({ id:b.id, name:b.name, rating:b.rating, isHuman:false, level:b.level })));
+  const matches = [];
+  for(let i=0;i<participants.length;i++) for(let j=i+1;j<participants.length;j++) matches.push({ aIdx:i, bIdx:j, result:null });
+  tournament = {
+    name: nameInput.value.trim() || 'Turnier',
+    participants,
+    matches
+  };
+  // Simulate all bot-vs-bot matches immediately.
+  tournament.matches.forEach(m => {
+    const a = tournament.participants[m.aIdx], b = tournament.participants[m.bIdx];
+    if(!a.isHuman && !b.isHuman) simulateBotMatch(m);
+  });
+  renderTournamentActive();
+});
+
+function simulateBotMatch(m){
+  const a = tournament.participants[m.aIdx], b = tournament.participants[m.bIdx];
+  const expectedA = 1 / (1 + Math.pow(10, (b.rating - a.rating) / 400));
+  const roll = Math.random();
+  // Draw chance shrinks the more the ratings differ.
+  const diff = Math.abs(a.rating - b.rating);
+  const drawChance = Math.max(0.08, 0.30 - diff/1200);
+  if(roll < drawChance){ m.result = 0.5; }
+  else if(Math.random() < expectedA){ m.result = 1; }
+  else { m.result = 0; }
+}
+
+function recordTournamentUserResult(matchIndex, userScore){
+  if(!tournament) return;
+  const m = tournament.matches[matchIndex];
+  if(!m) return;
+  const humanIdx = tournament.participants.findIndex(p => p.isHuman);
+  m.result = (m.aIdx === humanIdx) ? userScore : (1 - userScore);
+  renderTournamentActive();
+}
+
+function playTournamentMatch(matchIndex){
+  const m = tournament.matches[matchIndex];
+  const humanIdx = tournament.participants.findIndex(p => p.isHuman);
+  const oppIdx = m.aIdx === humanIdx ? m.bIdx : m.aIdx;
+  const oppParticipant = tournament.participants[oppIdx];
+  const bot = botById(oppParticipant.id);
+  activeTournamentMatch = { matchIndex };
+  showView('home');
+  document.getElementById('colorSelect').value = 'r';
+  startNewGame(undefined, bot ? bot.id : undefined);
+}
+
+function tournamentStandingsRows(){
+  const pts = tournament.participants.map((p, idx) => {
+    let points = 0, games = 0;
+    tournament.matches.forEach(m => {
+      if(m.result === null) return;
+      if(m.aIdx === idx){ points += m.result; games++; }
+      else if(m.bIdx === idx){ points += (1-m.result); games++; }
+    });
+    return { idx, name:p.name, isHuman:p.isHuman, points, games };
+  });
+  pts.sort((a,b) => b.points - a.points);
+  return pts;
+}
+
+function renderTournamentActive(){
+  const panel = document.getElementById('tournamentActivePanel');
+  if(!tournament){ panel.style.display = 'none'; panel.innerHTML=''; return; }
+  panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '12px';
+  panel.innerHTML = '';
+
+  const standingsPanel = document.createElement('div'); standingsPanel.className = 'panel';
+  standingsPanel.innerHTML = '<h3>' + tournament.name + ' — Tabelle</h3>';
+  const table = document.createElement('table'); table.className = 'standings';
+  table.innerHTML = '<thead><tr><th>#</th><th>Teilnehmer</th><th>Punkte</th><th>Partien</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  tournamentStandingsRows().forEach((row, i) => {
+    const tr = document.createElement('tr'); if(row.isHuman) tr.className = 'you';
+    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+row.name+(row.isHuman?' (du)':'')+'</td><td>'+row.points+'</td><td>'+row.games+'</td>';
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  standingsPanel.appendChild(table);
+  panel.appendChild(standingsPanel);
+
+  const humanIdx = tournament.participants.findIndex(p => p.isHuman);
+  const roundsPanel = document.createElement('div'); roundsPanel.className = 'panel';
+  roundsPanel.innerHTML = '<h3>Deine Partien</h3>';
+  const list = document.createElement('div'); list.className = 'round-list';
+  tournament.matches.forEach((m, idx) => {
+    if(m.aIdx !== humanIdx && m.bIdx !== humanIdx) return;
+    const oppIdx = m.aIdx === humanIdx ? m.bIdx : m.aIdx;
+    const opp = tournament.participants[oppIdx];
+    const item = document.createElement('div'); item.className = 'round-item';
+    let statusBadge = '<span class="badge">offen</span>';
+    if(m.result !== null){
+      const score = (m.aIdx === humanIdx) ? m.result : (1-m.result);
+      statusBadge = score === 1 ? '<span class="badge win">Sieg</span>' : score === 0 ? '<span class="badge loss">Niederlage</span>' : '<span class="badge draw">Remis</span>';
+    }
+    item.innerHTML = '<span class="rlabel">vs ' + opp.name + '</span>';
+    const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
+    right.innerHTML = statusBadge;
+    if(m.result === null){
+      const btn = document.createElement('button'); btn.className='primary'; btn.textContent='Spielen';
+      btn.addEventListener('click', () => playTournamentMatch(idx));
+      right.appendChild(btn);
+    }
+    item.appendChild(right);
+    list.appendChild(item);
+  });
+  roundsPanel.appendChild(list);
+  panel.appendChild(roundsPanel);
+
+  const otherPanel = document.createElement('div'); otherPanel.className = 'panel';
+  otherPanel.innerHTML = '<h3>Bot-Partien (simuliert)</h3>';
+  const otherList = document.createElement('div'); otherList.className = 'round-list';
+  tournament.matches.forEach(m => {
+    if(m.aIdx === humanIdx || m.bIdx === humanIdx) return;
+    const a = tournament.participants[m.aIdx], b = tournament.participants[m.bIdx];
+    const item = document.createElement('div'); item.className = 'round-item';
+    const res = m.result === null ? '…' : (m.result===1?a.name+' gewinnt':m.result===0?b.name+' gewinnt':'Remis');
+    item.innerHTML = '<span class="rlabel">'+a.name+' vs '+b.name+'</span><span class="badge">'+res+'</span>';
+    otherList.appendChild(item);
+  });
+  otherPanel.appendChild(otherList);
+  panel.appendChild(otherPanel);
+
+  const endBtn = document.createElement('button');
+  endBtn.textContent = 'Turnier beenden';
+  endBtn.addEventListener('click', () => { tournament = null; renderTournamentActive(); });
+  panel.appendChild(endBtn);
+}
+
+/* ============================================================
    ANALYSIS BOARD
    ============================================================ */
 const analysisState = { initialized:false, game:null, orientation:'w', selected:null, targets:[], last:null, history:[], viewPly:0, startFen:null };
@@ -949,7 +1360,7 @@ function renderAnalysisBoard(){
   makeBoardInteractive(analysisBoardEl, onAnalysisSquareClick);
 }
 function onAnalysisSquareClick(sqName){
-  if(analysisState.viewPly !== analysisState.history.length) return; // don't allow moves while reviewing history
+  if(analysisState.viewPly !== analysisState.history.length) return;
   const g = analysisState.game;
   const piece = g.get(sqName);
   if(analysisState.selected){
@@ -991,7 +1402,7 @@ function checkAnalysisEnd(){
   else analysisStatusEl.textContent = '';
 }
 function updateAnalysisEval(){
-  const score = evaluateBoard(analysisState.game); // positive = White ahead, in centipawns
+  const score = evaluateBoard(analysisState.game);
   const clamped = Math.max(-800, Math.min(800, score));
   const whitePct = 50 + (clamped / 800) * 50;
   evalFillEl.style.height = whitePct + '%';
@@ -1004,7 +1415,7 @@ function jumpToAnalysisPly(ply){
   if(ply > 0) g.load(analysisState.history[ply-1].fen);
   analysisState.game = g;
   analysisState.selected = null; analysisState.targets = [];
-  analysisState.last = ply > 0 ? null : null;
+  analysisState.last = null;
   renderAnalysisBoard(); updateAnalysisEval(); renderAnalysisMoves(); checkAnalysisEnd();
 }
 document.getElementById('analysisLoadFenBtn').addEventListener('click', () => {
@@ -1020,11 +1431,6 @@ document.getElementById('analysisLoadPgnBtn').addEventListener('click', () => {
   if(ok === false){ analysisStatusEl.textContent = 'Invalid PGN.'; return; }
   analysisState.game = g;
   analysisState.startFen = null;
-  analysisState.history = g.history({ verbose:true }).map((m, i, arr) => {
-    // Rebuild fen-per-ply by replaying (chess.js doesn't expose this directly)
-    return m;
-  });
-  // Replay to build a proper history list with FEN snapshots
   const replay = new Chess();
   const sanList = g.history();
   const rebuiltHistory = [];
@@ -1040,7 +1446,7 @@ document.getElementById('analysisPrevBtn').addEventListener('click', () => jumpT
 document.getElementById('analysisNextBtn').addEventListener('click', () => jumpToAnalysisPly(Math.min(analysisState.history.length, analysisState.viewPly+1)));
 
 /* ============================================================
-   TOOLS landing page — import a FEN, then jump to analysis or play
+   TOOLS landing page
    ============================================================ */
 document.getElementById('toolsToAnalysisBtn').addEventListener('click', () => {
   const fen = document.getElementById('toolsFenBox').value.trim();
