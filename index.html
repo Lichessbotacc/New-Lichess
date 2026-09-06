@@ -600,13 +600,41 @@ const PIECE_VALUE = { p:100, n:320, b:330, r:500, q:900, k:0 };
 /* Original, simplified Staunton-style piece silhouettes (own vector artwork,
    not traced from any existing piece set) drawn as inline SVG so they scale
    crisply at any board size — similar clean, flat look to modern chess sites. */
+/* Classic Staunton-style piece silhouettes (own vector artwork), redrawn to
+   closely match the familiar look/proportions of the well-known "cburnett"
+   set (the default piece style on lichess): round pawn head on a slim neck,
+   3-merlon rook, slit-eyed bishop mitre with a ball finial, a horse-head
+   knight in left-facing profile, and crown/cross finials on queen/king. */
 const PIECE_PATHS = {
-  p: '<circle cx="22.5" cy="11" r="6.2"/><path d="M15.5 33c0-6.5 3.2-10 3.2-15h7.6c0 5 3.2 8.5 3.2 15z"/><rect x="12" y="33" width="21" height="4.5" rx="1.2"/>',
-  r: '<rect x="10" y="9" width="6" height="6"/><rect x="19.5" y="9" width="6" height="6"/><rect x="29" y="9" width="6" height="6"/><path d="M10 15h25v4l-2.5 2.5v10L35 34v3H10v-3l2.5-2.5v-10L10 19z"/><rect x="9.5" y="34" width="26" height="4.5" rx="1"/>',
-  b: '<circle cx="22.5" cy="7.5" r="2.8"/><path d="M14.5 34c0-9.5 4-13 4-19 0-3.8 1.8-6 4-6s4 2.2 4 6c0 6 4 9.5 4 19z"/><line x1="18.5" y1="19" x2="26.5" y2="19" stroke-width="1.4"/><rect x="11.5" y="34" width="22" height="4" rx="1"/><rect x="9.5" y="38" width="26" height="4" rx="1"/>',
-  n: '<path d="M31 34c0-3-1.5-5-3.5-6.5 2.5-1.5 4-4 4-7.5 0-6-4.7-10-10.7-10-3 0-5.3 1.2-6.8 3l2 2c1-1.2 2.6-2 4.5-2 .8 0 1.4.6 1.4 1.4 0 .9-.7 1.3-1.8 1.9-2.6 1.4-5.6 3.4-5.6 8.2 0 2 .8 3.6 2 4.8-1.6 1.3-2.5 3-2.5 4.7z"/><circle cx="18.3" cy="17.3" r="1.1" fill="#000"/><rect x="10.5" y="34" width="24" height="4.5" rx="1"/>',
-  q: '<circle cx="10" cy="10.5" r="2.6"/><circle cx="18" cy="7" r="2.6"/><circle cx="22.5" cy="6" r="2.6"/><circle cx="27" cy="7" r="2.6"/><circle cx="35" cy="10.5" r="2.6"/><path d="M10 13.5h25l-2.7 14.5H12.7z"/><rect x="10.5" y="28" width="24" height="5" rx="1"/><rect x="9" y="34" width="27" height="4.5" rx="1"/>',
-  k: '<rect x="21" y="1.5" width="3" height="8"/><rect x="18" y="4.5" width="9" height="3"/><path d="M12.5 13.5h20l-2.7 14.5H15.2z"/><rect x="11.5" y="28" width="22" height="5" rx="1"/><rect x="9" y="34" width="27" height="4.5" rx="1"/>'
+  p: '<path d="M22.5 9.5a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8z"/>'
+   + '<path d="M20.3 18.9c-1 3.4-3.4 5.2-3.4 10.4 0 1.6.3 3 .8 4.2h10.6c.5-1.2.8-2.6.8-4.2 0-5.2-2.4-7-3.4-10.4z"/>'
+   + '<path d="M15.5 33.5h14l1.2 4.5H14.3z"/>'
+   + '<path d="M12 39.5h21v3.2H12z"/>',
+  r: '<path d="M11 12.5v-4h4.5v2.2h4V8.5H24v2.2h4V8.5h4.5v2.2h4v-2.2H41v4l-2.7 2.6v4.4L41 22v2.5H11V22l2.7-2.5v-4.4z" transform="translate(-1.5 0) scale(0.98)"/>'
+   + '<path d="M12.5 17.3h20v11.4h-20z"/>'
+   + '<path d="M13.5 28.7h18l1.8 5.3h-21.6z"/>'
+   + '<path d="M11.5 34h22v4.2h-22z"/>'
+   + '<path d="M9.5 38.2h26v3.8h-26z"/>',
+  b: '<circle cx="22.5" cy="8.2" r="2.3"/>'
+   + '<path d="M22.5 12.2c-4.6 3.1-9.3 7.6-9.3 14.4 0 3.6 1.7 6.2 3.6 8.2-1.9.9-3.3 2-3.3 4h18c0-2-1.4-3.1-3.3-4 1.9-2 3.6-4.6 3.6-8.2 0-6.8-4.7-11.3-9.3-14.4z"/>'
+   + '<path d="M17.3 24.2l10.4-4.4M17.3 19.8l10.4 4.4" stroke-width="1.6"/>'
+   + '<path d="M14 38.8h17v3.9H14z"/>'
+   + '<path d="M11.5 42.7h22v2.8h-22z"/>',
+  n: '<path d="M32.5 40.5c0-4.2-2-6.3-4.7-7.9 1-1.8 1.5-3.9 1.2-6.2-.5-4-3-6.6-3-6.6s.7-2.3-.4-4.4c-.7-1.3-2-2.3-2-2.3s-.3 1.6-1.5 2.3c-1.4.8-3.6.4-5.4 1.7-2.6 1.9-3.6 5-3.1 7.6.3 1.7 1.2 3 2.2 3.9-1.7.6-3.4 1.9-4.6 3.9-1.6 2.6-1.7 5.4-1.7 5.4h3.1c0-1.6.4-3 1.3-4.2.9-1.2 2.2-1.9 2.2-1.9s-1 1.7-.6 3.4c.3 1.3 1.3 2.2 1.3 2.2h13.5c.2.7.2 1.4.2 2.1z"/>'
+   + '<circle cx="16.6" cy="19.6" r="1.15" fill="#000"/>'
+   + '<path d="M11.5 27.3c1.8-.3 3.4.4 4.4 1.6" stroke-width="1.3" fill="none"/>'
+   + '<path d="M12.5 40.5h20v3.9h-20z"/>'
+   + '<path d="M10.5 44.4h24v0.6h-24z"/>',
+  q: '<circle cx="8.5" cy="9.5" r="2.3"/><circle cx="16" cy="6" r="2.3"/><circle cx="22.5" cy="4.6" r="2.5"/><circle cx="29" cy="6" r="2.3"/><circle cx="36.5" cy="9.5" r="2.3"/>'
+   + '<path d="M9.5 12.5l3 15h20l3-15-6.5 5-6.5-9-6.5 9z"/>'
+   + '<path d="M12 29.5h21v4.3H12z"/>'
+   + '<path d="M13 33.8h19l1.6 4.8H11.4z"/>'
+   + '<path d="M10.5 38.6h23v3.9h-23z"/>',
+  k: '<path d="M22.5 3.5v8" stroke-width="2.6"/><path d="M18.7 6.5h7.6" stroke-width="2.6"/>'
+   + '<path d="M22.5 13c-6.6 4-11 8.7-11 15 0 4.5 2.2 7.6 4.6 9.7-2 1-3.6 2.2-3.6 4.3h20c0-2.1-1.6-3.3-3.6-4.3 2.4-2.1 4.6-5.2 4.6-9.7 0-6.3-4.4-11-11-15z"/>'
+   + '<path d="M13 26.5c3-2.3 8-2.3 9.5.3 1.5-2.6 6.5-2.6 9.5-.3" stroke-width="1.5" fill="none"/>'
+   + '<path d="M13.7 39h17.6v4.3H13.7z"/>'
+   + '<path d="M11 43.3h23v2.7H11z"/>'
 };
 function pieceSVG(type, color){
   const isWhite = color === 'w';
@@ -799,7 +827,18 @@ function loadRatingsStore(){
   return { human: defaultVariantRatings(1500), bots: {} };
 }
 let ratingsStore = loadRatingsStore();
-function saveRatingsStore(){ safeSet(LS_RATINGS, JSON.stringify(ratingsStore)); renderEloBadge(); }
+function saveRatingsStore(){ safeSet(LS_RATINGS, JSON.stringify(ratingsStore)); renderEloBadge(); refreshRatingDependentUI(); }
+/* Keeps every place that prints a bot's rating in sync with reality —
+   without this, the bot picker / bot cards kept showing the rating from
+   the moment the page loaded (or the bot was created) instead of the
+   real, current Elo once games had actually been played. */
+function refreshRatingDependentUI(){
+  if(typeof renderBotSelect === 'function') renderBotSelect();
+  const botsView = document.getElementById('view-bots');
+  if(botsView && botsView.classList.contains('active') && typeof renderBotGrid === 'function') renderBotGrid();
+  const lbView = document.getElementById('view-leaderboard');
+  if(lbView && lbView.classList.contains('active') && typeof renderLeaderboard === 'function') renderLeaderboard();
+}
 
 function getRating(entityId, variant){
   if(entityId === 'human') return ratingsStore.human[variant];
@@ -1325,8 +1364,8 @@ function updateClockDisplay(){
   const topLive = liveRemaining(topColor), bottomLive = liveRemaining(bottomColor);
   clockTopEl.textContent = fmtTime(topLive);
   clockBottomEl.textContent = fmtTime(bottomLive);
-  clockTopEl.classList.toggle('active', game.turn() === topColor && !gameOver);
-  clockBottomEl.classList.toggle('active', game.turn() === bottomColor && !gameOver);
+  clockTopEl.classList.toggle('active', turnStartTs !== null && game.turn() === topColor && !gameOver);
+  clockBottomEl.classList.toggle('active', turnStartTs !== null && game.turn() === bottomColor && !gameOver);
   clockTopEl.classList.toggle('low', topLive !== null && topLive <= 20);
   clockBottomEl.classList.toggle('low', bottomLive !== null && bottomLive <= 20);
 }
@@ -1724,7 +1763,11 @@ function startNewGame(fen, botIdOverride){
   boardOrientation = humanColor;
   bottomSubEl.textContent = humanColor === 'w' ? 'Weiß' : 'Schwarz';
   syncPanels(); renderPlayBoard();
-  if(times.w !== null) startClock(); else updateClockDisplay();
+  // Lichess behaviour: neither clock ticks until the very first move of the
+  // game has been played (by whichever side moves first) — bankClockAfterMove()
+  // starts the timer for the side to move next once that happens, so here we
+  // only draw the static, frozen starting time.
+  updateClockDisplay();
   if(game.turn() !== humanColor) scheduleComputerMove();
 
   const berserkBtnEl = document.getElementById('berserkBtn');
