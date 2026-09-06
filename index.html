@@ -425,7 +425,7 @@ window.Chess = Chess;
         <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">Deine Partien spielst du live auf dem Brett (mit Uhr). Partien zwischen zwei Bots werden wirklich bis zum Ende gespielt (Matt/Patt/Remis), nicht gewürfelt, und live auf dem Zuschauerbrett gezeigt. In der Arena wirst du sofort neu gepaart, sobald du frei bist — wie bei lichess. Du kannst die Arena jederzeit pausieren und fortsetzen.</p>
       </div>
     </div>
-    <div class="side-col" style="max-width:640px" id="tournamentActivePanel" style="display:none">
+    <div class="side-col" style="max-width:640px;display:none" id="tournamentActivePanel">
     </div>
     <div class="board-col" id="spectateCol" style="display:none">
       <div class="panel" style="width:min(88vw,340px)">
@@ -450,6 +450,7 @@ window.Chess = Chess;
           <thead><tr><th>#</th><th>Name</th><th>Rating</th></tr></thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
+        <button class="navbtn ghost" id="resetEloBtn" style="margin-top:10px">Alle Elo-Werte auf 1500 zurücksetzen</button>
       </div>
     </div>
   </div>
@@ -764,18 +765,41 @@ const LS_RATINGS = 'kordava_ratings_v2';   // { human: {variant:rating}, bots: {
 const LS_BOTS = 'kordava_custom_bots_v1';
 const LS_STATS = 'kordava_stats_v1';
 
+/* Safe localStorage wrapper. In some environments (sandboxed preview
+   iframes, strict privacy modes, certain file:// contexts) localStorage
+   is present but throws on every access instead of just being unavailable.
+   Without this guard, the FIRST bot-vs-bot game to finish anywhere in the
+   app (Live TV or a Tournament) would throw an uncaught exception inside
+   applyEloForGame() -> saveRatingsStore() and permanently freeze that
+   game/tournament — the bots involved stay marked "busy" forever and no
+   new game ever replaces it, which is exactly what broke Tournaments and
+   Live TV. We now fall back to an in-memory store so the app always keeps
+   working for the current session even if nothing can be persisted. */
+let __lsBroken = false;
+const __memStore = {};
+function safeGet(key){
+  try { return localStorage.getItem(key); }
+  catch(e){ __lsBroken = true; return Object.prototype.hasOwnProperty.call(__memStore,key) ? __memStore[key] : null; }
+}
+function safeSet(key, value){
+  __memStore[key] = value; // always keep an in-memory copy so the session stays consistent
+  if(__lsBroken) return;
+  try { localStorage.setItem(key, value); }
+  catch(e){ __lsBroken = true; }
+}
+
 function defaultVariantRatings(baseRating){
   const o = {}; VARIANTS.forEach(v => o[v] = baseRating); return o;
 }
 function loadRatingsStore(){
   try {
-    const s = JSON.parse(localStorage.getItem(LS_RATINGS));
+    const s = JSON.parse(safeGet(LS_RATINGS));
     if(s && s.human && s.bots) return s;
   } catch(e){}
   return { human: defaultVariantRatings(1500), bots: {} };
 }
 let ratingsStore = loadRatingsStore();
-function saveRatingsStore(){ localStorage.setItem(LS_RATINGS, JSON.stringify(ratingsStore)); renderEloBadge(); }
+function saveRatingsStore(){ safeSet(LS_RATINGS, JSON.stringify(ratingsStore)); renderEloBadge(); }
 
 function getRating(entityId, variant){
   if(entityId === 'human') return ratingsStore.human[variant];
@@ -802,9 +826,9 @@ function applyEloForGame(idA, idB, variant, scoreA){
 
 let myStats = loadStats();
 function loadStats(){
-  try { return JSON.parse(localStorage.getItem(LS_STATS)) || {w:0,l:0,d:0}; } catch(e){ return {w:0,l:0,d:0}; }
+  try { return JSON.parse(safeGet(LS_STATS)) || {w:0,l:0,d:0}; } catch(e){ return {w:0,l:0,d:0}; }
 }
-function saveStats(s){ localStorage.setItem(LS_STATS, JSON.stringify(s)); }
+function saveStats(s){ safeSet(LS_STATS, JSON.stringify(s)); }
 
 function renderEloBadge(){
   const el = document.getElementById('eloBadge');
@@ -822,9 +846,9 @@ function defaultBots(){
   return arr;
 }
 function loadCustomBots(){
-  try { return JSON.parse(localStorage.getItem(LS_BOTS)) || []; } catch(e){ return []; }
+  try { return JSON.parse(safeGet(LS_BOTS)) || []; } catch(e){ return []; }
 }
-function saveCustomBots(list){ localStorage.setItem(LS_BOTS, JSON.stringify(list)); }
+function saveCustomBots(list){ safeSet(LS_BOTS, JSON.stringify(list)); }
 function allBots(){ return defaultBots().concat(loadCustomBots()); }
 function botById(id){ return allBots().find(b => b.id === id); }
 
@@ -918,10 +942,10 @@ const BOARD_THEMES = [
   { id:'gray',  light:'#e8e8e8', dark:'#7a7a7a' }
 ];
 function loadSettings(){
-  try { return Object.assign({sound:true, dark:false, coords:true, boardTheme:'brown'}, JSON.parse(localStorage.getItem(LS_SETTINGS))); }
+  try { return Object.assign({sound:true, dark:false, coords:true, boardTheme:'brown'}, JSON.parse(safeGet(LS_SETTINGS))); }
   catch(e){ return {sound:true, dark:false, coords:true, boardTheme:'brown'}; }
 }
-function saveSettings(){ localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); }
+function saveSettings(){ safeSet(LS_SETTINGS, JSON.stringify(settings)); }
 let settings = loadSettings();
 
 function applySettings(){
@@ -2389,6 +2413,12 @@ startBotTvEngine(); // Live TV runs in the background from the moment the page l
    LEADERBOARD — per-variant Elo for you and every bot.
    ============================================================ */
 let leaderboardVariant = 'blitz';
+document.getElementById('resetEloBtn').addEventListener('click', () => {
+  if(!confirm('Wirklich alle Elo-Werte (du + alle Bots, alle Varianten) auf 1500 zurücksetzen?')) return;
+  ratingsStore = { human: defaultVariantRatings(1500), bots: {} };
+  saveRatingsStore();
+  renderLeaderboard();
+});
 function renderLeaderboard(){
   const tabs = document.getElementById('leaderboardTabs');
   tabs.innerHTML = '';
