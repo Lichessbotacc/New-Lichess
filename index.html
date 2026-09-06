@@ -371,6 +371,41 @@ window.Chess = Chess;
             <option value="7">7</option><option value="8">8</option>
           </select>
         </div>
+      </div>
+      <div class="btnrow" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:1;min-width:150px"><label>Spielstil</label>
+          <select id="botStyleInput">
+            <option value="balanced">Ausgewogen</option>
+            <option value="aggressive">Aggressiv (Angriff &amp; Opfer)</option>
+            <option value="positional">Positionell (Zentrum &amp; Entwicklung)</option>
+            <option value="defensive">Defensiv (solide, wenig Risiko)</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:150px"><label>Eröffnung</label>
+          <select id="botOpeningInput">
+            <option value="random">Beliebig</option>
+            <option value="e4">1.e4 (Offen)</option>
+            <option value="d4">1.d4 (Geschlossen)</option>
+            <option value="nf3">1.Nf3 (Réti)</option>
+            <option value="c4">1.c4 (Englisch)</option>
+          </select>
+        </div>
+      </div>
+      <div class="btnrow" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:1;min-width:150px"><label>Spielgeschwindigkeit</label>
+          <select id="botSpeedInput">
+            <option value="slow">Bedächtig (denkt lange nach)</option>
+            <option value="normal" selected>Normal</option>
+            <option value="fast">Schnell (zieht zügig)</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:150px"><label>Zeitnot-Verhalten</label>
+          <select id="botTimeHandlingInput">
+            <option value="good">Gut (bleibt auch in Zeitnot ruhig)</option>
+            <option value="normal" selected>Normal</option>
+            <option value="poor">Schwach (patzt in Zeitnot leicht)</option>
+          </select>
+        </div>
         <button class="primary" id="createBotBtn">Bot erstellen</button>
       </div>
     </div>
@@ -876,11 +911,12 @@ function renderEloBadge(){
 renderEloBadge();
 
 /* ---- Bot roster ---- */
-const BOT_NAMES = ['Anfänger Anna','Bauer Ben','Rochade Rita','Läufer Lars','Springer Sina','Turm Theo','Dame Dana','Stahl-Stefan'];
+const BOT_NAMES = ['Bot 1','Bot 2','Bot 3','Bot 4','Bot 5','Bot 6','Bot 7','Bot 8'];
 function defaultBots(){
   const arr = [];
   for(let lvl=1; lvl<=8; lvl++){
-    arr.push({ id: 'std'+lvl, name: BOT_NAMES[lvl-1], level: lvl, rating: 1500, custom:false });
+    arr.push({ id: 'std'+lvl, name: BOT_NAMES[lvl-1], level: lvl, rating: 1500, custom:false,
+      style:'balanced', opening:'random', speed:'normal', timeHandling:'normal' });
   }
   return arr;
 }
@@ -897,9 +933,13 @@ document.getElementById('createBotBtn').addEventListener('click', () => {
   const name = nameEl.value.trim();
   if(!name){ nameEl.focus(); return; }
   const level = parseInt(lvlEl.value, 10);
+  const style = document.getElementById('botStyleInput').value;
+  const opening = document.getElementById('botOpeningInput').value;
+  const speed = document.getElementById('botSpeedInput').value;
+  const timeHandling = document.getElementById('botTimeHandlingInput').value;
   const list = loadCustomBots();
   const id = 'custom_' + Date.now();
-  list.push({ id, name, level, rating: 1500, custom:true });
+  list.push({ id, name, level, rating: 1500, custom:true, style, opening, speed, timeHandling });
   saveCustomBots(list);
   nameEl.value = '';
   renderBotGrid();
@@ -920,8 +960,10 @@ function renderBotGrid(){
     const card = document.createElement('div');
     card.className = 'bot-card';
     const initials = bot.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const styleLabel = {balanced:'Ausgewogen',aggressive:'Aggressiv',positional:'Positionell',defensive:'Defensiv'}[bot.style||'balanced'];
     card.innerHTML = '<div class="bot-head"><div class="bot-avatar">'+initials+'</div>'
-      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · Blitz '+Math.round(getRating(bot.id,'blitz'))+(bot.custom?' · eigener Bot':'')+'</div></div></div>';
+      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · Blitz '+Math.round(getRating(bot.id,'blitz'))+(bot.custom?' · eigener Bot':'')+'</div>'
+      + '<div class="bot-meta">'+styleLabel+(bot.opening&&bot.opening!=='random'?' · Eröffnung: '+bot.opening.toUpperCase():'')+'</div></div></div>';
     const row = document.createElement('div'); row.className = 'btnrow';
     const playBtn = document.createElement('button'); playBtn.className='primary'; playBtn.textContent='Spielen';
     playBtn.addEventListener('click', () => { showView('home'); startNewGame(undefined, bot.id); });
@@ -1405,6 +1447,10 @@ function endGame(message, result){
     recordTournamentUserResult(activeTournamentMatch.matchIndex, humanScore, berserked);
     activeTournamentMatch = null;
     const btn = document.getElementById('berserkBtn'); if(btn) btn.style.display = 'none';
+    // Like lichess: after finishing your tournament game, you land back on
+    // the tournament page (standings / next pairing) instead of staying on
+    // an empty finished board.
+    setTimeout(() => { if(tournament) showView('tournaments'); }, 1400);
   }
 }
 
@@ -1432,29 +1478,79 @@ function minimax(g, depth, alpha, beta, maximizing){
    fewer blunders, closer to real chess strength. This is now only the
    FALLBACK engine — used only if the real Stockfish (below) can't be
    loaded, e.g. no internet access when the page is opened. */
-const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:2, 4:2, 5:3, 6:3, 7:4, 8:5};
-const BLUNDER_BY_LEVEL = {1:.55,2:.40,3:.25,4:.15,5:.08,6:.04,7:.015,8:0};
+const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:1, 4:2, 5:2, 6:3, 7:4, 8:5};
+const BLUNDER_BY_LEVEL = {1:.65, 2:.50, 3:.35, 4:.22, 5:.12, 6:.05, 7:.02, 8:0};
+// Centipawn-ish noise added to every candidate move's score before picking
+// the "best" one — this is what makes low levels genuinely weak (missing
+// good moves, drifting into bad positions) rather than just "sometimes
+// picks a completely random move but otherwise plays perfectly", which is
+// what made the old levels 1–3 feel far stronger than real, low-rated
+// Stockfish levels on lichess.
+const NOISE_BY_LEVEL    = {1:260, 2:190, 3:130, 4:85, 5:45, 6:20, 7:8, 8:0};
 
 /* Generic move-picker that works on ANY chess.js instance + level — used
    both for your live games (against `game`) and for engine-vs-engine
    tournament games that are played out for real, move by move. */
-function pickMoveForLevel(g, level){
+function pickMoveForLevel(g, level, bot){
   const moves = g.moves({verbose:true});
   if(moves.length === 0) return null;
+
+  // Opening preference: only steers the very first move of the game (as
+  // White) — full opening "books" for every reply are out of scope, but
+  // this alone makes a bot's games visibly recognizable (always opens
+  // 1.e4, always opens 1.d4, ...) instead of every bot playing identically.
+  if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
+    const openingMove = { e4:'e2e4', d4:'d2d4', nf3:'g1f3', c4:'c2c4' }[bot.opening];
+    if(openingMove){
+      const m = moves.find(mv => mv.from+mv.to === openingMove);
+      if(m) return m;
+    }
+  }
+
   const depth = DEPTH_BY_LEVEL[level] || 2;
-  if(Math.random() < (BLUNDER_BY_LEVEL[level] || 0)){
+  const blunderChance = (BLUNDER_BY_LEVEL[level] || 0) * (bot && bot.blunderMult || 1);
+  if(Math.random() < Math.min(0.95, blunderChance)){
     return moves[Math.floor(Math.random()*moves.length)];
   }
+  const noise = NOISE_BY_LEVEL[level] || 0;
   const maximizing = g.turn() === 'w';
+  const style = bot && bot.style;
   let bestScore = maximizing ? -Infinity : Infinity, bestMoves = [];
   for(const m of moves){
     g.move(m);
-    const score = minimax(g, depth-1, -Infinity, Infinity, !maximizing);
+    let score = minimax(g, depth-1, -Infinity, Infinity, !maximizing);
     g.undo();
+    if(noise) score += (Math.random()*2 - 1) * noise * (maximizing ? 1 : -1);
+    if(style && style !== 'balanced'){
+      const styleBonus = styleMoveBonus(m, style) * (maximizing ? 1 : -1);
+      score += styleBonus;
+    }
     if(maximizing ? score > bestScore : score < bestScore){ bestScore = score; bestMoves = [m]; }
     else if(score === bestScore) bestMoves.push(m);
   }
   return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+/* Small, cheap heuristic nudges (well under the value of a pawn) so each
+   style visibly leans a certain way over a game without overriding sound
+   tactics found by the search above. */
+function styleMoveBonus(m, style){
+  let bonus = 0;
+  const central = new Set(['d4','d5','e4','e5']);
+  const backRank = new Set(['1','8']);
+  if(style === 'aggressive'){
+    if(m.flags && m.flags.includes('c')) bonus += 18;      // captures
+    if(m.san && m.san.includes('+')) bonus += 22;           // checks
+    if(central.has(m.to)) bonus += 6;
+  } else if(style === 'positional'){
+    if(central.has(m.to)) bonus += 16;                      // center control
+    if((m.piece === 'n' || m.piece === 'b') && backRank.has(m.from[1])) bonus += 14; // development
+    if(m.flags && m.flags.includes('k')) bonus += 20;        // castling
+  } else if(style === 'defensive'){
+    if(m.flags && m.flags.includes('k')) bonus += 26;        // castle early
+    if(m.flags && m.flags.includes('c')) bonus -= 6;         // avoid unnecessary trades
+    if(central.has(m.to)) bonus += 4;
+  }
+  return bonus;
 }
 
 /* ============================================================
@@ -1612,14 +1708,21 @@ async function stockfishMove(g, level){
     releaseEngineSlot(slot);
   }
 }
-async function pickMoveForLevelAsync(g, level){
+async function pickMoveForLevelAsync(g, level, bot){
+  // Honor the chosen opening move deterministically even when real
+  // Stockfish is available (Stockfish has no concept of "this bot's
+  // favourite first move").
+  if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
+    const forced = pickMoveForLevel(g, level, bot);
+    if(forced) return forced;
+  }
   const sf = await stockfishMove(g, level);
-  return sf || pickMoveForLevel(g, level);
+  return sf || pickMoveForLevel(g, level, bot);
 }
 
 function pickComputerMove(){
   const level = currentBot ? currentBot.level : 3;
-  return pickMoveForLevel(game, level);
+  return pickMoveForLevel(game, level, currentBot);
 }
 
 /* Plays a COMPLETE real game between two bot levels move-by-move on a
@@ -1645,9 +1748,10 @@ function playFullEngineGame(levelA, levelB){
 
 
 /* How long the bot "thinks" before moving: depends on its level (stronger
-   bots ponder longer) and on how much of its own clock is left (running
-   low on time makes it play fast and instinctively, like a human blitzing
-   out moves on low time). No effect when the clock is off (untimed game). */
+   bots ponder longer), its own speed setting, and on how much of its own
+   clock is left (running low on time makes it play fast and instinctively,
+   like a human blitzing out moves on low time). No effect when the clock
+   is off (untimed game). */
 function getThinkDelayMs(){
   const level = currentBot ? currentBot.level : 3;
   const botColor = humanColor === 'w' ? 'b' : 'w';
@@ -1655,6 +1759,8 @@ function getThinkDelayMs(){
   const baseMin = 120 + level*40;      // faster bots barely pause
   const baseMax = 350 + level*260;     // stronger bots ponder much longer
   let delay = baseMin + Math.random()*(baseMax-baseMin);
+  const speedMult = { slow:1.6, normal:1, fast:0.45 }[currentBot && currentBot.speed] || 1;
+  delay *= speedMult;
   if(botTime !== null){
     if(botTime <= 8) delay = Math.min(delay, 90 + Math.random()*120);        // near flag: blitz it out
     else if(botTime <= 25) delay *= 0.35;                                     // low on time: hurry up
@@ -1662,6 +1768,22 @@ function getThinkDelayMs(){
     else if(botTime > 240) delay *= 1.15;                                    // plenty of time: take a bit longer
   }
   return Math.round(Math.min(delay, 2600));
+}
+/* How much more likely the bot is to blunder because its own clock is
+   running low — depends on its timeHandling setting. Bots with "poor" time
+   handling fall apart much more once low on time, like a human panicking;
+   bots with "good" handling barely change their play at all. */
+function timePressureBlunderMult(){
+  if(!currentBot) return 1;
+  const botColor = humanColor === 'w' ? 'b' : 'w';
+  const botTime = liveRemaining(botColor);
+  if(botTime === null) return 1;
+  const handling = currentBot.timeHandling || 'normal';
+  const factor = { good:0.6, normal:1, poor:1.8 }[handling] || 1;
+  if(botTime <= 10) return 1 + 2.5*factor;
+  if(botTime <= 30) return 1 + 1.2*factor;
+  if(botTime <= 60) return 1 + 0.4*factor;
+  return 1;
 }
 function scheduleComputerMove(){
   if(thinkingTimer) clearTimeout(thinkingTimer);
@@ -1671,9 +1793,10 @@ function computerMove(){
   if(gameOver) return;
   const level = currentBot ? currentBot.level : 3;
   const g = game;
+  const botWithTimePressure = currentBot ? Object.assign({}, currentBot, { blunderMult: timePressureBlunderMult() }) : currentBot;
   stockfishMove(g, level).then(sfMove => {
     if(gameOver || g !== game) return; // game may have changed (undo/new game) while we awaited
-    const m = sfMove || pickMoveForLevel(g, level);
+    const m = sfMove || pickMoveForLevel(g, level, botWithTimePressure);
     if(!m) return;
     playComputerMove(m);
   });
@@ -1955,6 +2078,7 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
     finished: false
   };
   spectateGameKey = null;
+  checked.forEach(b => releaseBotFromLiveTv(b.id));
   if(format === 'arena') startArenaEngine();
   else startTournamentRound();
   renderTournamentActive();
@@ -2014,12 +2138,20 @@ function addTournamentPoints(t, idx, score, berserked){
    scenes. Marks both bots globally busy so Live TV won't also use them. */
 function beginBotVsBotGame(t, match){
   const pa = t.participants[match.aIdx], pb = t.participants[match.bIdx];
+  // Guard against double-booking a bot that's still finishing an older Live
+  // TV game right as this tournament round starts — wait for it instead of
+  // running the same bot on two boards at once.
+  if(globalBusyBotIds.has(pa.id) || globalBusyBotIds.has(pb.id)){
+    setTimeout(() => { if(tournament === t && match.result === null && !match.live) beginBotVsBotGame(t, match); }, 300);
+    return;
+  }
   globalBusyBotIds.add(pa.id); globalBusyBotIds.add(pb.id);
   const key = 'g' + (t.liveGameSeq++);
   const aIsWhite = Math.random() < 0.5;
   const g = new Chess();
   const levelForColor = { w: aIsWhite ? pa.level : pb.level, b: aIsWhite ? pb.level : pa.level };
-  const live = { key, match, game: g, levelForColor, aIsWhite, plies: 0, lastMove: null, done: false };
+  const botForColor = { w: aIsWhite ? pa : pb, b: aIsWhite ? pb : pa };
+  const live = { key, match, game: g, levelForColor, botForColor, aIsWhite, plies: 0, lastMove: null, done: false };
   match.live = live;
   t.liveGames[key] = live;
   if(!spectateGameKey) spectateGameKey = key;
@@ -2038,7 +2170,7 @@ async function stepLiveGame(t, live){
   const g = live.game;
   if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live); return; }
   const level = live.levelForColor[g.turn()];
-  const mv = await pickMoveForLevelAsync(g, level);
+  const mv = await pickMoveForLevelAsync(g, level, live.botForColor[g.turn()]);
   if(tournament !== t || live.done) return; // ended/paused-away while we awaited Stockfish
   if(!mv){ finishLiveGame(t, live); return; }
   g.move(mv);
@@ -2191,12 +2323,17 @@ function fmtArenaClock(ms){
 
 function renderTournamentActive(){
   const panel = document.getElementById('tournamentActivePanel');
+  const setupPanel = document.getElementById('tournamentSetupPanel');
   if(!tournament){
     panel.style.display = 'none'; panel.innerHTML = '';
+    if(setupPanel) setupPanel.style.display = '';
     document.getElementById('spectateCol').style.display = 'none';
     if(spectateRefreshTimer){ clearInterval(spectateRefreshTimer); spectateRefreshTimer = null; }
     return;
   }
+  // A tournament is already running — hide the "create a new tournament"
+  // settings instead of leaving them visible and clickable next to it.
+  if(setupPanel) setupPanel.style.display = 'none';
   const t = tournament;
   panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '12px';
   panel.innerHTML = '';
@@ -2358,8 +2495,35 @@ let botTvSeq = 0;
 let botTvSpectateKey = null;
 let botTvStarted = false;
 
+/* Immediately abandons any in-progress Live TV game that involves the
+   given bot, freeing it up right away instead of making a brand-new
+   tournament wait for that TV game to finish on its own (which — before
+   this — could take a real minute or two and made tournaments look like
+   they were only pairing a couple of participants). */
+function releaseBotFromLiveTv(botId){
+  for(const key of Object.keys(botTvGames)){
+    const live = botTvGames[key];
+    if(live.botA.id === botId || live.botB.id === botId){
+      live.done = true;
+      globalBusyBotIds.delete(live.botA.id);
+      globalBusyBotIds.delete(live.botB.id);
+      delete botTvGames[key];
+      if(botTvSpectateKey === key) botTvSpectateKey = Object.keys(botTvGames)[0] || null;
+      runNextTvGame(live.channelIdx);
+    }
+  }
+}
+
 function pickFreeBotPair(){
-  const free = allBots().filter(b => !globalBusyBotIds.has(b.id));
+  // While a tournament is running, its bots must not get siphoned off into
+  // Live TV games — otherwise Live TV keeps re-grabbing them the instant
+  // they free up (its retry loop is faster/more persistent than the arena
+  // engine claiming them back), and the tournament can get stuck with only
+  // a couple of games ever completing instead of pairing everyone.
+  const reserved = (tournament && !tournament.finished)
+    ? new Set(tournament.participants.filter(p => !p.isHuman).map(p => p.id))
+    : null;
+  const free = allBots().filter(b => !globalBusyBotIds.has(b.id) && !(reserved && reserved.has(b.id)));
   if(free.length < 2) return null;
   for(let i = free.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
@@ -2384,7 +2548,8 @@ function runNextTvGame(channelIdx){
   const aIsWhite = Math.random() < 0.5;
   const g = new Chess();
   const levelForColor = { w: aIsWhite ? botA.level : botB.level, b: aIsWhite ? botB.level : botA.level };
-  const live = { key, channelIdx, botA, botB, aIsWhite, tc, variant, game: g, levelForColor, plies: 0, lastMove: null, done: false };
+  const botForColor = { w: aIsWhite ? botA : botB, b: aIsWhite ? botB : botA };
+  const live = { key, channelIdx, botA, botB, aIsWhite, tc, variant, game: g, levelForColor, botForColor, plies: 0, lastMove: null, done: false };
   botTvGames[key] = live;
   if(!botTvSpectateKey) botTvSpectateKey = key;
   renderWatchView();
@@ -2395,7 +2560,7 @@ async function stepTvGame(live){
   const g = live.game;
   if(g.game_over() || live.plies >= 220){ finishTvGame(live); return; }
   const level = live.levelForColor[g.turn()];
-  const mv = await pickMoveForLevelAsync(g, level);
+  const mv = await pickMoveForLevelAsync(g, level, live.botForColor[g.turn()]);
   if(live.done) return; // could have finished by other means while awaiting
   if(!mv){ finishTvGame(live); return; }
   g.move(mv);
