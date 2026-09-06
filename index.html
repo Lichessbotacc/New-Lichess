@@ -159,6 +159,15 @@ window.Chess = Chess;
   @media (max-width:900px){ .navside input{display:none;} }
 
   html, body{ touch-action: manipulation; } /* kills double-tap-to-zoom site-wide */
+  *{ touch-action: manipulation; }
+  body{
+    -webkit-user-select:none; -moz-user-select:none; user-select:none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select, [contenteditable]{
+    -webkit-user-select:text; -moz-user-select:text; user-select:text;
+  }
 
   /* ---- dark mode ---- */
   body.dark{ --bg:#161512; --bg2:#262421; --header:#0e0d0c; --panel:#262421; --panel2:#302e2b;
@@ -379,9 +388,20 @@ window.Chess = Chess;
         <input type="text" id="tournamentNameInput" placeholder="z.B. Sommer-Arena" style="margin-bottom:10px">
         <label>Format</label>
         <select id="tournamentFormatSelect" style="margin-bottom:10px">
-          <option value="arena">Arena (fortlaufende Runden, du entscheidest wann Schluss ist)</option>
+          <option value="arena">Arena (fester Zeitrahmen, laufende Neu-Paarung, wie lichess)</option>
           <option value="swiss">Schweizer System (feste Rundenzahl, Paarung nach Punktestand)</option>
         </select>
+        <div id="arenaDurationRow">
+          <label>Turnierdauer</label>
+          <select id="arenaDurationSelect" style="margin-bottom:10px">
+            <option value="5">5 Minuten</option>
+            <option value="10">10 Minuten</option>
+            <option value="15" selected>15 Minuten</option>
+            <option value="30">30 Minuten</option>
+            <option value="45">45 Minuten</option>
+            <option value="60">60 Minuten</option>
+          </select>
+        </div>
         <div id="swissRoundsRow" style="display:none">
           <label>Anzahl Runden</label>
           <select id="swissRoundsSelect" style="margin-bottom:10px">
@@ -401,10 +421,19 @@ window.Chess = Chess;
         <div id="tournamentBotList"></div>
         <br>
         <button class="primary" id="createTournamentBtn" style="width:100%">Turnier erstellen</button>
-        <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">Deine Partien spielst du live auf dem Brett (mit Uhr). Partien zwischen zwei Bots werden vom selben Bot-Engine wirklich bis zum Ende gespielt (Matt/Patt/Remis), nicht gewürfelt. Alle Ergebnisse fließen in die Elo aller Teilnehmer (inkl. Bots) ein.</p>
+        <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">Deine Partien spielst du live auf dem Brett (mit Uhr). Partien zwischen zwei Bots werden wirklich bis zum Ende gespielt (Matt/Patt/Remis), nicht gewürfelt, und live auf dem Zuschauerbrett gezeigt. In der Arena wirst du sofort neu gepaart, sobald du frei bist — wie bei lichess. Du kannst die Arena jederzeit pausieren und fortsetzen.</p>
       </div>
     </div>
     <div class="side-col" style="max-width:640px" id="tournamentActivePanel" style="display:none">
+    </div>
+    <div class="board-col" id="spectateCol" style="display:none">
+      <div class="panel" style="width:min(88vw,340px)">
+        <h3>Zuschauen</h3>
+        <div id="spectateLabel" style="font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:8px;text-align:center"></div>
+        <div class="boardgrid" id="spectateBoard" style="width:min(88vw,300px);height:min(88vw,300px);margin:0 auto"></div>
+        <div class="btnrow" style="margin-top:10px;justify-content:center" id="spectatePicker"></div>
+        <p style="margin-top:8px;font-size:11px;color:var(--text2)">Zeigt eine laufende Bot-gegen-Bot-Partie dieser Arena live, Zug für Zug. Da die Seite ohne Server läuft, lassen sich keine echten fremden Spieler beobachten — dies ist die Live-Ansicht deiner eigenen Arena-Partien im Hintergrund.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -536,6 +565,20 @@ window.Chess = Chess;
    Kordava Chess — single-file build. All features on this page
    run entirely client-side (chess.js for rules, no backend).
    ============================================================ */
+
+/* ---- Belt-and-braces double-tap zoom / select / copy suppression ----
+   The CSS (touch-action, user-select) handles almost everything, but a
+   couple of engines still need an explicit event-level block: fast
+   double-taps that Safari/iOS interprets as a zoom gesture, and the
+   two-finger pinch gesture. */
+document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false });
+let __lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - __lastTouchEnd <= 350) e.preventDefault();
+  __lastTouchEnd = now;
+}, { passive:false });
 
 const PIECE_VALUE = { p:100, n:320, b:330, r:500, q:900, k:0 };
 
@@ -1574,12 +1617,21 @@ document.getElementById('puzzleNextBtn').addEventListener('click', () => loadPuz
    into the standings automatically.
    ============================================================ */
 let tournament = null;
+let arenaEngineTimer = null;
+let spectateGameKey = null;
+let spectateRefreshTimer = null;
 /* tournament shape:
    { name, format:'arena'|'swiss', tcMin, tcInc, variant,
      participants:[{id,name,isHuman,level}],
      scores:[Number], streaks:[Number], gamesPlayed:[Number],
      pairingHistory:Set<'i-j'>, roundsPlayed:Number, maxRounds:Number|null,
-     currentRoundMatches:[{aIdx,bIdx,result:null|Number,bye:Bool}], finished:Bool } */
+     remainingMs:Number|null (arena only), paused:Bool, lastTickTs:Number,
+     currentRoundMatches:[{aIdx,bIdx,result:null|Number,bye:Bool,live:Object|null}],
+     liveGames:{ [key]: liveGameState }, liveGameSeq:Number, finished:Bool }
+   An arena never resets currentRoundMatches — new pairings are appended as
+   soon as two participants are free, exactly like lichess. Bot-vs-bot games
+   are played out move by move in real time (not resolved instantly) so they
+   can be watched live on the spectator board. */
 
 function renderTournamentBotList(){
   const box = document.getElementById('tournamentBotList');
@@ -1595,6 +1647,7 @@ function renderTournamentBotList(){
 }
 document.getElementById('tournamentFormatSelect').addEventListener('change', (e) => {
   document.getElementById('swissRoundsRow').style.display = e.target.value === 'swiss' ? 'block' : 'none';
+  document.getElementById('arenaDurationRow').style.display = e.target.value === 'arena' ? 'block' : 'none';
 });
 
 document.getElementById('createTournamentBtn').addEventListener('click', () => {
@@ -1607,6 +1660,8 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
   const variant = variantForTC(tcMin, tcInc);
   const participants = [{ id:'human', name:'Du', isHuman:true }]
     .concat(checked.map(b => ({ id:b.id, name:b.name, isHuman:false, level:b.level })));
+  const durationMin = parseInt(document.getElementById('arenaDurationSelect').value, 10);
+  stopArenaEngine();
   tournament = {
     name: nameInput.value.trim() || 'Turnier',
     format, tcValue, tcMin, tcInc, variant,
@@ -1617,10 +1672,18 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
     pairingHistory: new Set(),
     roundsPlayed: 0,
     maxRounds: format === 'swiss' ? parseInt(document.getElementById('swissRoundsSelect').value,10) : null,
+    remainingMs: format === 'arena' ? durationMin*60000 : null,
+    paused: false,
+    lastTickTs: Date.now(),
     currentRoundMatches: [],
+    liveGames: {},
+    liveGameSeq: 0,
     finished: false
   };
-  startTournamentRound();
+  spectateGameKey = null;
+  if(format === 'arena') startArenaEngine();
+  else startTournamentRound();
+  renderTournamentActive();
 });
 
 function generatePairings(t){
@@ -1653,24 +1716,139 @@ function addTournamentPoints(t, idx, score){
   else { t.streaks[idx] = 0; }
 }
 
+/* Plays a bot-vs-bot game out for real, move by move, on its own Chess
+   instance — used by both Swiss rounds and the continuous Arena so that
+   any such game can be watched live on the spectator board instead of
+   being resolved instantly behind the scenes. */
+function beginBotVsBotGame(t, match){
+  const pa = t.participants[match.aIdx], pb = t.participants[match.bIdx];
+  const key = 'g' + (t.liveGameSeq++);
+  const aIsWhite = Math.random() < 0.5;
+  const g = new Chess();
+  const levelForColor = { w: aIsWhite ? pa.level : pb.level, b: aIsWhite ? pb.level : pa.level };
+  const live = { key, match, game: g, levelForColor, aIsWhite, plies: 0, lastMove: null, done: false };
+  match.live = live;
+  t.liveGames[key] = live;
+  if(!spectateGameKey) spectateGameKey = key;
+  scheduleLiveMove(t, live);
+  return live;
+}
+function scheduleLiveMove(t, live){
+  const delay = 220 + Math.random()*420;
+  setTimeout(function tick(){
+    if(tournament !== t || live.done) return;
+    if(t.paused){ setTimeout(tick, 300); return; }
+    stepLiveGame(t, live);
+  }, delay);
+}
+function stepLiveGame(t, live){
+  const g = live.game;
+  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live); return; }
+  const mv = pickMoveForLevel(g, live.levelForColor[g.turn()]);
+  if(!mv){ finishLiveGame(t, live); return; }
+  g.move(mv);
+  live.lastMove = { from: mv.from, to: mv.to };
+  live.plies++;
+  if(spectateGameKey === live.key) renderSpectateBoard();
+  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live); return; }
+  scheduleLiveMove(t, live);
+}
+function finishLiveGame(t, live){
+  live.done = true;
+  const g = live.game;
+  let scoreForWhite = 0.5;
+  if(g.in_checkmate()) scoreForWhite = (g.turn() === 'w') ? 0 : 1;
+  const scoreA = live.aIsWhite ? scoreForWhite : (1 - scoreForWhite);
+  const match = live.match;
+  const pa = t.participants[match.aIdx], pb = t.participants[match.bIdx];
+  applyEloForGame(pa.id, pb.id, t.variant, scoreA);
+  match.result = scoreA;
+  match.live = null;
+  addTournamentPoints(t, match.aIdx, scoreA);
+  addTournamentPoints(t, match.bIdx, 1 - scoreA);
+  delete t.liveGames[live.key];
+  if(spectateGameKey === live.key) spectateGameKey = Object.keys(t.liveGames)[0] || null;
+  if(tournament === t) renderTournamentActive();
+}
+
 function startTournamentRound(){
   const t = tournament;
-  if(!t || t.finished) return;
+  if(!t || t.finished || t.format !== 'swiss') return;
   const pairs = generatePairings(t);
-  t.currentRoundMatches = pairs.map(([a,b]) => ({ aIdx:a, bIdx:b, result:null, bye: b===null }));
+  t.currentRoundMatches = pairs.map(([a,b]) => ({ aIdx:a, bIdx:b, result:null, bye: b===null, live:null }));
   t.roundsPlayed++;
   t.currentRoundMatches.forEach(m => {
     if(m.bye){ addTournamentPoints(t, m.aIdx, 1); m.result = 'bye'; return; }
     const pa = t.participants[m.aIdx], pb = t.participants[m.bIdx];
-    if(!pa.isHuman && !pb.isHuman){
-      const scoreA = playFullEngineGame(pa.level, pb.level);
-      applyEloForGame(pa.id, pb.id, t.variant, scoreA);
-      m.result = scoreA;
-      addTournamentPoints(t, m.aIdx, scoreA);
-      addTournamentPoints(t, m.bIdx, 1 - scoreA);
-    }
+    if(!pa.isHuman && !pb.isHuman) beginBotVsBotGame(t, m);
   });
   renderTournamentActive();
+}
+
+/* ---- Continuous arena engine (this is the "exactly like lichess" part):
+   a fixed time budget ticks down; the instant two participants (you or a
+   bot) are free, they're paired and start playing immediately — no
+   discrete rounds, no manual "next round" click. Pausing freezes the
+   clock, stops new pairings, and freezes every running bot-vs-bot game. */
+function startArenaEngine(){
+  const t = tournament;
+  t.lastTickTs = Date.now();
+  stopArenaEngine();
+  arenaEngineTimer = setInterval(() => arenaTick(t), 500);
+}
+function stopArenaEngine(){ if(arenaEngineTimer){ clearInterval(arenaEngineTimer); arenaEngineTimer = null; } }
+
+function arenaTick(t){
+  if(!tournament || tournament !== t || t.format !== 'arena'){ stopArenaEngine(); return; }
+  const now = Date.now();
+  if(!t.paused){
+    t.remainingMs -= (now - t.lastTickTs);
+    if(t.remainingMs <= 0){
+      t.remainingMs = 0; t.finished = true;
+      stopArenaEngine(); t.lastTickTs = now;
+      renderTournamentActive();
+      return;
+    }
+  }
+  t.lastTickTs = now;
+  if(t.paused){ return; }
+
+  const busy = new Set();
+  t.currentRoundMatches.forEach(m => { if(m.result === null){ busy.add(m.aIdx); busy.add(m.bIdx); } });
+  const freeIdxs = t.participants.map((_,i)=>i).filter(i => !busy.has(i));
+  if(freeIdxs.length >= 2){
+    const newMatches = pairFreeParticipants(t, freeIdxs);
+    const humanIdx = t.participants.findIndex(p => p.isHuman);
+    const humanMatchIdx = newMatches.find(idx => {
+      const m = t.currentRoundMatches[idx];
+      return m.aIdx === humanIdx || m.bIdx === humanIdx;
+    });
+    // Lichess behaviour: as soon as you're paired, you're dropped straight onto the board.
+    if(humanMatchIdx !== undefined && activeTournamentMatch === null && viewingHome()){
+      setTimeout(() => playTournamentMatch(humanMatchIdx), 30);
+    }
+    renderTournamentActive();
+  }
+}
+function viewingHome(){ return true; } // arena auto-start is safe from any view; startNewGame switches to Play itself
+
+function pairFreeParticipants(t, freeIdxs){
+  const order = freeIdxs.map(idx => ({ idx, score: t.scores[idx], r: Math.random() }))
+    .sort((a,b) => (b.score - a.score) || (a.r - b.r)).map(o => o.idx);
+  const newMatchIndexes = [];
+  while(order.length >= 2){
+    const idxA = order.shift();
+    let partnerPos = order.findIndex(cand => !t.pairingHistory.has(idxA+'-'+cand) && !t.pairingHistory.has(cand+'-'+idxA));
+    if(partnerPos === -1) partnerPos = 0;
+    const idxB = order.splice(partnerPos, 1)[0];
+    t.pairingHistory.add(idxA+'-'+idxB);
+    const match = { aIdx: idxA, bIdx: idxB, result: null, bye: false, live: null };
+    t.currentRoundMatches.push(match);
+    newMatchIndexes.push(t.currentRoundMatches.length - 1);
+    const pa = t.participants[idxA], pb = t.participants[idxB];
+    if(!pa.isHuman && !pb.isHuman) beginBotVsBotGame(t, match);
+  }
+  return newMatchIndexes;
 }
 
 function recordTournamentUserResult(inRoundIndex, userScore){
@@ -1689,6 +1867,7 @@ function roundIsComplete(t){ return t.currentRoundMatches.every(m => m.result !=
 
 function playTournamentMatch(inRoundIndex){
   const m = tournament.currentRoundMatches[inRoundIndex];
+  if(!m || m.result !== null) return;
   const humanIdx = tournament.participants.findIndex(p => p.isHuman);
   const oppIdx = m.aIdx === humanIdx ? m.bIdx : m.aIdx;
   const bot = botById(tournament.participants[oppIdx].id);
@@ -1703,16 +1882,28 @@ function tournamentStandingsRows(t){
   return t.participants.map((p, idx) => ({ idx, name:p.name, isHuman:p.isHuman, points:t.scores[idx], games:t.gamesPlayed[idx] }))
     .sort((a,b) => b.points - a.points);
 }
+function fmtArenaClock(ms){
+  ms = Math.max(0, ms||0);
+  const totalSec = Math.floor(ms/1000);
+  return Math.floor(totalSec/60) + ':' + String(totalSec%60).padStart(2,'0');
+}
 
 function renderTournamentActive(){
   const panel = document.getElementById('tournamentActivePanel');
-  if(!tournament){ panel.style.display = 'none'; panel.innerHTML=''; return; }
+  if(!tournament){
+    panel.style.display = 'none'; panel.innerHTML = '';
+    document.getElementById('spectateCol').style.display = 'none';
+    if(spectateRefreshTimer){ clearInterval(spectateRefreshTimer); spectateRefreshTimer = null; }
+    return;
+  }
   const t = tournament;
   panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '12px';
   panel.innerHTML = '';
 
   const headPanel = document.createElement('div'); headPanel.className = 'panel';
-  const roundLabel = t.format === 'swiss' ? ('Runde ' + t.roundsPlayed + ' / ' + t.maxRounds) : ('Runde ' + t.roundsPlayed + ' (Arena)');
+  const roundLabel = t.format === 'swiss'
+    ? ('Runde ' + t.roundsPlayed + ' / ' + t.maxRounds)
+    : (t.finished ? 'Beendet' : (t.paused ? ('Pausiert · noch ' + fmtArenaClock(t.remainingMs)) : ('Noch ' + fmtArenaClock(t.remainingMs))));
   headPanel.innerHTML = '<h3>' + t.name + ' — ' + (t.format==='swiss'?'Schweizer System':'Arena') + '</h3><p style="margin:0 0 8px;font-size:13px">'+roundLabel+' · ' + VARIANT_LABEL[t.variant] + '</p>';
   const table = document.createElement('table'); table.className = 'standings';
   table.innerHTML = '<thead><tr><th>#</th><th>Teilnehmer</th><th>Punkte</th><th>Partien</th></tr></thead>';
@@ -1728,9 +1919,11 @@ function renderTournamentActive(){
 
   const humanIdx = t.participants.findIndex(p => p.isHuman);
   const roundsPanel = document.createElement('div'); roundsPanel.className = 'panel';
-  roundsPanel.innerHTML = '<h3>Diese Runde</h3>';
+  roundsPanel.innerHTML = '<h3>' + (t.format==='arena' ? 'Laufende &amp; letzte Partien' : 'Diese Runde') + '</h3>';
   const list = document.createElement('div'); list.className = 'round-list';
-  t.currentRoundMatches.forEach((m, idx) => {
+  const indexed = t.currentRoundMatches.map((m,i)=>({m,i}));
+  const shown = t.format === 'arena' ? indexed.slice(-14).reverse() : indexed;
+  shown.forEach(({m, i}) => {
     const item = document.createElement('div'); item.className = 'round-item';
     if(m.bye){
       item.innerHTML = '<span class="rlabel">'+t.participants[m.aIdx].name+' — spielfrei</span><span class="badge">Freilos (+1)</span>';
@@ -1748,8 +1941,15 @@ function renderTournamentActive(){
     right.innerHTML = badge;
     if(involvesHuman && m.result === null){
       const btn = document.createElement('button'); btn.className='primary'; btn.textContent='Spielen';
-      btn.addEventListener('click', () => playTournamentMatch(idx));
+      btn.addEventListener('click', () => playTournamentMatch(i));
       right.appendChild(btn);
+    }
+    if(m.live && m.result === null){
+      const watchBtn = document.createElement('button');
+      watchBtn.textContent = (spectateGameKey === m.live.key) ? 'Wird gezeigt' : 'Zuschauen';
+      watchBtn.disabled = spectateGameKey === m.live.key;
+      watchBtn.addEventListener('click', () => { spectateGameKey = m.live.key; renderTournamentActive(); });
+      right.appendChild(watchBtn);
     }
     item.appendChild(right);
     list.appendChild(item);
@@ -1761,18 +1961,76 @@ function renderTournamentActive(){
   const roundDone = roundIsComplete(t);
   if(t.finished){
     ctrlPanel.innerHTML = '<p style="margin:0;font-weight:700;color:var(--good)">Turnier beendet — Endstand siehe Tabelle oben.</p>';
-  } else if(roundDone){
+  } else if(t.format === 'swiss' && roundDone){
     const nextBtn = document.createElement('button'); nextBtn.className='primary'; nextBtn.style.width='100%';
-    nextBtn.textContent = t.format==='swiss' ? 'Nächste Runde starten' : 'Nächste Arena-Runde starten';
+    nextBtn.textContent = 'Nächste Runde starten';
     nextBtn.addEventListener('click', startTournamentRound);
     ctrlPanel.appendChild(nextBtn);
+  } else if(t.format === 'arena'){
+    const pauseBtn = document.createElement('button'); pauseBtn.className='primary'; pauseBtn.style.width='100%';
+    pauseBtn.textContent = t.paused ? '▶ Arena fortsetzen' : '⏸ Arena pausieren';
+    pauseBtn.addEventListener('click', () => { t.paused = !t.paused; t.lastTickTs = Date.now(); renderTournamentActive(); });
+    ctrlPanel.appendChild(pauseBtn);
+    const info = document.createElement('p'); info.style.cssText = 'margin:8px 0 0;font-size:12.5px;color:var(--text2)';
+    info.textContent = t.paused
+      ? 'Pausiert: Uhr, Neu-Paarung und alle laufenden Bot-Partien stehen still.'
+      : 'Läuft — sobald du frei bist, wirst du automatisch neu gepaart und direkt aufs Brett gebracht.';
+    ctrlPanel.appendChild(info);
   } else {
     ctrlPanel.innerHTML = '<p style="margin:0;font-size:12.5px;color:var(--text2)">Spiele deine Partie(n) dieser Runde, um weiterzumachen.</p>';
   }
   const endBtn = document.createElement('button'); endBtn.style.marginTop='8px'; endBtn.style.width='100%'; endBtn.textContent = 'Turnier beenden';
-  endBtn.addEventListener('click', () => { tournament = null; renderTournamentActive(); });
+  endBtn.addEventListener('click', () => {
+    stopArenaEngine();
+    tournament = null; spectateGameKey = null;
+    renderTournamentActive();
+  });
   ctrlPanel.appendChild(endBtn);
   panel.appendChild(ctrlPanel);
+
+  renderSpectateSection(t);
+}
+
+/* ---- Spectator board: shows a live bot-vs-bot game move by move.
+   Honest limitation: this file has no server, so there are no other real
+   users to watch — this shows the background games of your own running
+   tournament live, which is the closest a single static page can get to
+   lichess's "watch games" feature. */
+function renderSpectateSection(t){
+  const col = document.getElementById('spectateCol');
+  const liveKeys = Object.keys(t.liveGames);
+  if(liveKeys.length === 0){
+    col.style.display = 'none';
+    if(spectateRefreshTimer){ clearInterval(spectateRefreshTimer); spectateRefreshTimer = null; }
+    return;
+  }
+  col.style.display = 'flex';
+  if(!spectateGameKey || !t.liveGames[spectateGameKey]) spectateGameKey = liveKeys[0];
+  const picker = document.getElementById('spectatePicker');
+  picker.innerHTML = '';
+  liveKeys.forEach(key => {
+    const live = t.liveGames[key];
+    const a = t.participants[live.match.aIdx], b = t.participants[live.match.bIdx];
+    const btn = document.createElement('button');
+    btn.textContent = a.name.split(' ')[0] + ' – ' + b.name.split(' ')[0];
+    if(key === spectateGameKey) btn.className = 'primary';
+    btn.addEventListener('click', () => { spectateGameKey = key; renderSpectateBoard(); renderSpectateSection(t); });
+    picker.appendChild(btn);
+  });
+  renderSpectateBoard();
+  if(!spectateRefreshTimer) spectateRefreshTimer = setInterval(() => { if(tournament) renderSpectateBoard(); }, 500);
+}
+function renderSpectateBoard(){
+  if(!tournament) return;
+  const live = tournament.liveGames[spectateGameKey];
+  const boardEl2 = document.getElementById('spectateBoard');
+  const labelEl = document.getElementById('spectateLabel');
+  if(!live){ boardEl2.innerHTML = ''; labelEl.textContent = ''; return; }
+  const a = tournament.participants[live.match.aIdx], b = tournament.participants[live.match.bIdx];
+  const whiteName = live.aIsWhite ? a.name : b.name;
+  const blackName = live.aIsWhite ? b.name : a.name;
+  labelEl.textContent = whiteName + ' (Weiß) vs ' + blackName + ' (Schwarz)' + (tournament.paused ? ' · pausiert' : '');
+  paintBoard(boardEl2, live.game, 'w', null, [], live.lastMove);
 }
 
 /* ============================================================
