@@ -1669,20 +1669,23 @@ function styleMoveBonus(m, style){
 }
 
 const STOCKFISH_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
-/* Restored to the original lichess-style skill/depth/movetime table (only
-   used for level >=5 — see pickMoveForLevelAsync for levels 1-4). These
-   are the exact values lichess itself uses for its "Play the computer"
-   Stockfish levels 1-8 (see fishnet's LVL_SKILL/LVL_DEPTHS/LVL_MOVETIMES).
-   The depth values in particular matter a lot: even with Skill Level
-   heavily reduced, letting the engine search to depth 5 at level 1 still
-   plays far too strong — real lichess only allows depth 1-3 for levels
-   1-4, which is what actually makes those levels feel beatable. */
-const SF_LEVEL_SKILL    = [-9, -5, -1, 3, 7, 11, 16, 20];
+/* lichess-style skill/depth/movetime table, ONLY used for level >=5 (see
+   pickMoveForLevelAsync, which routes levels 1-4 to the pure JS fallback
+   engine instead). Real Stockfish's "Skill Level" UCI option only accepts
+   0-20 — negative values (as this table used to have for levels 1-3) are
+   simply ignored by the engine, so it silently played at full strength.
+   That's exactly why "Bot 1" felt far too strong: it wasn't being weakened
+   at all. Levels 1-4 are now handled entirely by the JS fallback engine
+   (pickMoveForLevel), whose depth/blunder/noise table gives real, verified
+   weak play; real Stockfish (clamped to valid 0-20 skill) only kicks in
+   from level 5 up, matching lichess's own "Play the computer" behaviour. */
+const SF_LEVEL_SKILL    = [0, 0, 0, 2, 7, 11, 16, 20];
 const SF_LEVEL_DEPTH    = [1, 1, 2, 3, 5, 8, 13, 22];
 const SF_LEVEL_MOVETIME = [50, 100, 150, 200, 300, 400, 500, 1000];
+const SF_MIN_LEVEL_FOR_ENGINE = 5;
 const SF_POOL_SIZE = 4;
 const SF_LOAD_TIMEOUT_MS = 4000;
-const SF_MOVE_TIMEOUT_MS = 3000;
+const SF_MOVE_TIMEOUT_MS = 1200;
 let stockfishAvailable = null;
 let sfPool = [];
 let sfLoadPromise = null;
@@ -1721,7 +1724,7 @@ class SFEngine {
     if(this.ready) return Promise.resolve();
     return new Promise(res => this._readyWaiters.push(res));
   }
-  setSkill(skill){ this.worker.postMessage('setoption name Skill Level value ' + skill); }
+  setSkill(skill){ this.worker.postMessage('setoption name Skill Level value ' + Math.max(0, Math.min(20, Math.round(skill)))); }
   bestMoveForFen(fen, depth, movetime){
     this.worker.postMessage('position fen ' + fen);
     return new Promise(resolve => {
@@ -1780,6 +1783,10 @@ async function acquireEngineSlot(){
 function releaseEngineSlot(slot){ slot.busy = false; }
 
 async function stockfishMove(g, level, bot){
+  /* Levels/strengths below the level-5 threshold never touch the real
+     engine at all — see the note above SF_MIN_LEVEL_FOR_ENGINE. */
+  const floatLevel = (bot && bot.strength) ? strengthToFloatLevel(bot.strength) : level;
+  if(floatLevel < SF_MIN_LEVEL_FOR_ENGINE) return null;
   const slot = await acquireEngineSlot();
   if(!slot) return null;
   try {
@@ -2169,6 +2176,7 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
     paused: false,
     lastTickTs: Date.now(),
     currentRoundMatches: [],
+    activeMatches: new Set(),
     liveGames: {},
     liveGameSeq: 0,
     finished: false
@@ -2235,17 +2243,21 @@ const MAX_CONCURRENT_TOURNAMENT_GAMES = 8;
    mirrors getThinkDelayMs() used for the human's own games, so bots in
    tournaments/Live TV behave exactly like they would against you. */
 function computeBotThinkDelayMs(level, bot, remainingMs){
-  const baseMin = 120 + level*40;
-  const baseMax = 350 + level*260;
+  /* Kept short on purpose: this is a background bot-vs-bot game (tournament
+     or Live TV), not the human's own move — nobody needs to watch a 4.5s
+     "thinking" pause per ply, that's what made spectated games feel like
+     they were hanging. */
+  const baseMin = 60 + level*15;
+  const baseMax = 140 + level*70;
   let delay = baseMin + Math.random()*(baseMax-baseMin);
-  const speedMult = { slow:1.6, normal:1, fast:0.45 }[bot && bot.speed] || 1;
+  const speedMult = { slow:1.4, normal:1, fast:0.4 }[bot && bot.speed] || 1;
   delay *= speedMult;
   if(remainingMs !== null && remainingMs !== undefined){
     const remSec = remainingMs/1000;
     delay *= timeScaleFactor(remSec);
-    if(remSec <= 8) delay = Math.min(delay, 90 + Math.random()*120);
+    if(remSec <= 8) delay = Math.min(delay, 60 + Math.random()*80);
   }
-  return Math.min(delay, 4500);
+  return Math.min(delay, 900);
 }
 function timePressureBlunderMultFor(bot, remainingMs){
   if(remainingMs === null || remainingMs === undefined) return 1;
@@ -2340,6 +2352,7 @@ function finishLiveGame(t, live, flaggedColor){
   match.live = null;
   addTournamentPoints(t, match.aIdx, scoreA);
   addTournamentPoints(t, match.bIdx, 1 - scoreA);
+  t.activeMatches.delete(match);
   delete t.liveGames[live.key];
   globalBusyBotIds.delete(pa.id); globalBusyBotIds.delete(pb.id);
   if(spectateGameKey === live.key) spectateGameKey = Object.keys(t.liveGames)[0] || null;
@@ -2354,6 +2367,7 @@ function startTournamentRound(){
   t.roundsPlayed++;
   t.currentRoundMatches.forEach(m => {
     if(m.bye){ addTournamentPoints(t, m.aIdx, 1); m.result = 'bye'; return; }
+    t.activeMatches.add(m);
     const pa = t.participants[m.aIdx], pb = t.participants[m.bIdx];
     if(!pa.isHuman && !pb.isHuman) beginBotVsBotGame(t, m);
   });
@@ -2383,8 +2397,12 @@ function arenaTick(t){
   t.lastTickTs = now;
   if(t.paused){ return; }
 
+  /* Uses t.activeMatches (a Set of only the currently-running matches)
+     instead of scanning the ever-growing t.currentRoundMatches history —
+     that full-array scan on every 500ms tick was the reason long-running
+     arenas would gradually grind to a halt and stop re-pairing. */
   const busy = new Set();
-  t.currentRoundMatches.forEach(m => { if(m.result === null){ busy.add(m.aIdx); busy.add(m.bIdx); } });
+  t.activeMatches.forEach(m => { busy.add(m.aIdx); busy.add(m.bIdx); });
   const freeIdxs = t.participants.map((_,i)=>i).filter(i => {
     if(busy.has(i)) return false;
     const p = t.participants[i];
@@ -2413,8 +2431,28 @@ function pairFreeParticipants(t, freeIdxs){
   // unpaired this tick and simply waits for someone new to become free
   // (checked again on the next arenaTick, every 500ms) instead of being
   // forced to replay someone.
+  /* Trim the display/history array once it gets large — standings/points
+     are tracked separately in t.scores etc., so old finished matches don't
+     need to stay around forever. Keeps rendering and memory bounded for
+     arenas that run for a long time. Done before adding new matches below
+     so the indices returned to the caller stay valid. Still-active matches
+     are always kept regardless of position. */
+  if(t.currentRoundMatches.length > 400){
+    const tailFinished = t.currentRoundMatches.slice(-250);
+    const stillActive = t.currentRoundMatches.slice(0, -250).filter(m => t.activeMatches.has(m));
+    t.currentRoundMatches = stillActive.concat(tailFinished);
+  }
   const order = freeIdxs.map(idx => ({ idx, score: t.scores[idx], r: Math.random() }))
     .sort((a,b) => (b.score - a.score) || (a.r - b.r)).map(o => o.idx);
+  /* Give the human priority: if they're free, they go to the front of the
+     queue so they get paired with the very next available opponent instead
+     of potentially waiting indefinitely while bots keep re-pairing among
+     themselves first. */
+  const humanIdxInOrder = t.participants.findIndex(p => p.isHuman);
+  if(humanIdxInOrder !== -1){
+    const pos = order.indexOf(humanIdxInOrder);
+    if(pos > 0){ order.splice(pos,1); order.unshift(humanIdxInOrder); }
+  }
   const newMatchIndexes = [];
   const stillWaiting = [];
   while(order.length >= 1){
@@ -2425,6 +2463,7 @@ function pairFreeParticipants(t, freeIdxs){
     t.pairingHistory.add(idxA+'-'+idxB);
     const match = { aIdx: idxA, bIdx: idxB, result: null, bye: false, live: null };
     t.currentRoundMatches.push(match);
+    t.activeMatches.add(match);
     newMatchIndexes.push(t.currentRoundMatches.length - 1);
     const pa = t.participants[idxA], pb = t.participants[idxB];
     if(!pa.isHuman && !pb.isHuman) beginBotVsBotGame(t, match);
@@ -2439,6 +2478,7 @@ function pairFreeParticipants(t, freeIdxs){
       t.pairingHistory.add(idxA+'-'+idxB);
       const match = { aIdx: idxA, bIdx: idxB, result: null, bye: false, live: null };
       t.currentRoundMatches.push(match);
+      t.activeMatches.add(match);
       newMatchIndexes.push(t.currentRoundMatches.length - 1);
       const pa = t.participants[idxA], pb = t.participants[idxB];
       if(!pa.isHuman && !pb.isHuman) beginBotVsBotGame(t, match);
@@ -2454,6 +2494,7 @@ function recordTournamentUserResult(inRoundIndex, userScore, berserked){
   const humanIdx = tournament.participants.findIndex(p => p.isHuman);
   const scoreA = (m.aIdx === humanIdx) ? userScore : (1 - userScore);
   m.result = scoreA;
+  tournament.activeMatches.delete(m);
   addTournamentPoints(tournament, m.aIdx, scoreA, m.aIdx === humanIdx ? berserked : false);
   addTournamentPoints(tournament, m.bIdx, 1 - scoreA, m.bIdx === humanIdx ? berserked : false);
   if(tournament.format === 'swiss' && tournament.roundsPlayed >= tournament.maxRounds && roundIsComplete(tournament)) tournament.finished = true;
@@ -2508,9 +2549,11 @@ function renderTournamentActive(){
   const table = document.createElement('table'); table.className = 'standings';
   table.innerHTML = '<thead><tr><th>#</th><th>Participant</th><th>Rating</th><th>Points</th><th>Games</th></tr></thead>';
   const tbody = document.createElement('tbody');
+  const MEDALS = ['🥇','🥈','🥉'];
   tournamentStandingsRows(t).forEach((row, i) => {
     const tr = document.createElement('tr'); if(row.isHuman) tr.className = 'you';
-    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+row.name+(row.isHuman?' (du)':'')+'</td><td>'+row.rating+'</td><td>'+row.points+'</td><td>'+row.games+'</td>';
+    const rank = MEDALS[i] ? MEDALS[i]+' '+(i+1) : String(i+1);
+    tr.innerHTML = '<td>'+rank+'</td><td>'+row.name+(row.isHuman?' (du)':'')+'</td><td>'+row.rating+'</td><td>'+row.points+'</td><td>'+row.games+'</td>';
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
