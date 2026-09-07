@@ -368,7 +368,7 @@ window.Chess = Chess;
   <div class="hero"><h1>Bots</h1><p>Play against graded bots (Level 1–8) or create your own for tournaments.</p></div>
   <div class="create-bot-panel">
     <div class="panel">
-      <h3>Eigenen Bot erstellen</h3>
+      <h3>Create your own bot</h3>
       <div class="btnrow" style="align-items:flex-end">
         <div style="flex:2;min-width:160px"><label>Name</label><input type="text" id="botNameInput" placeholder="e.g. Endgame Emma"></div>
         <div style="flex:2;min-width:220px"><label>Strength: <span id="botStrengthValue">50</span> / 100</label>
@@ -409,7 +409,7 @@ window.Chess = Chess;
             <option value="poor">Poor (blunders easily in time trouble)</option>
           </select>
         </div>
-        <button class="primary" id="createBotBtn">Bot erstellen</button>
+        <button class="primary" id="createBotBtn">Create bot</button>
       </div>
     </div>
   </div>
@@ -1320,13 +1320,61 @@ function clearPremove(){
   renderPlayBoard();
 }
 
+function sqCoord(sq){ return { f: sq.charCodeAt(0) - 97, r: parseInt(sq[1], 10) - 1 }; }
+function coordSq(f, r){ if(f < 0 || f > 7 || r < 0 || r > 7) return null; return String.fromCharCode(97 + f) + (r + 1); }
+
+/* Premoves need to allow targeting a square that currently holds one of
+   YOUR OWN pieces — the classic "recapture premove" (e.g. queuing Nxd5
+   while d5 still has your own pawn, because you expect the opponent to
+   capture it there next). Normal chess.js move generation never returns
+   such a square since it's illegal on the current position. This scans
+   each piece's raw movement pattern (respecting blocking pieces for
+   sliding pieces) and adds any own-occupied square the piece could reach
+   if that square were empty or enemy-held, on top of the normal legal
+   targets. Re-legality is always re-checked for real when the premove is
+   actually played (see makeMove's stillLegal check), so this only affects
+   which squares can be queued, never what actually executes. */
+function extraPremoveTargets(sqName, piece){
+  const { f, r } = sqCoord(sqName);
+  const color = piece.color;
+  const targets = [];
+  const at = (ff, rr) => game.get(coordSq(ff, rr));
+  function ray(df, dr){
+    let ff = f + df, rr = r + dr;
+    while(ff >= 0 && ff <= 7 && rr >= 0 && rr <= 7){
+      const occ = at(ff, rr);
+      if(occ){ if(occ.color === color) targets.push(coordSq(ff, rr)); break; }
+      ff += df; rr += dr;
+    }
+  }
+  function step(df, dr){
+    const ff = f + df, rr = r + dr;
+    if(ff < 0 || ff > 7 || rr < 0 || rr > 7) return;
+    const occ = at(ff, rr);
+    if(occ && occ.color === color) targets.push(coordSq(ff, rr));
+  }
+  if(piece.type === 'b' || piece.type === 'q') [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([df,dr]) => ray(df,dr));
+  if(piece.type === 'r' || piece.type === 'q') [[1,0],[-1,0],[0,1],[0,-1]].forEach(([df,dr]) => ray(df,dr));
+  if(piece.type === 'n') [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]].forEach(([df,dr]) => step(df,dr));
+  if(piece.type === 'k') [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]].forEach(([df,dr]) => step(df,dr));
+  if(piece.type === 'p'){
+    const dir = color === 'w' ? 1 : -1;
+    [[1,dir],[-1,dir]].forEach(([df,dr]) => step(df,dr));
+  }
+  return targets;
+}
 function getPremoveTargets(sqName){
+  const piece = game.get(sqName);
+  if(!piece) return [];
   const parts = game.fen().split(' ');
   parts[1] = humanColor;
+  let normal = [];
   try {
     const shadow = new Chess(parts.join(' '));
-    return shadow.moves({ square: sqName, verbose: true }).map(m => m.to);
-  } catch(e){ return []; }
+    normal = shadow.moves({ square: sqName, verbose: true }).map(m => m.to);
+  } catch(e){ normal = []; }
+  const extra = extraPremoveTargets(sqName, piece).filter(sq => sq && !normal.includes(sq));
+  return normal.concat(extra);
 }
 
 function onSquareClick(sqName){
@@ -2097,11 +2145,11 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
   const [tcMin, tcInc] = tcValue.split('|').map(Number);
   const variant = variantForTC(tcMin, tcInc);
   const participants = [{ id:'human', name:'You', isHuman:true }]
-    .concat(checked.map(b => ({ id:b.id, name:b.name, isHuman:false, level:b.level })));
+    .concat(checked.map(b => Object.assign({}, b, { isHuman:false })));
   const durationMin = parseInt(document.getElementById('arenaDurationSelect').value, 10);
   stopArenaEngine();
   tournament = {
-    name: nameInput.value.trim() || 'Turnier',
+    name: nameInput.value.trim() || 'Tournament',
     format, tcValue, tcMin, tcInc, variant,
     participants,
     scores: participants.map(()=>0),
@@ -2437,7 +2485,7 @@ function renderTournamentActive(){
 
   const headPanel = document.createElement('div'); headPanel.className = 'panel';
   const roundLabel = t.format === 'swiss'
-    ? ('Runde ' + t.roundsPlayed + ' / ' + t.maxRounds)
+    ? ('Round ' + t.roundsPlayed + ' / ' + t.maxRounds)
     : (t.finished ? 'Beendet' : (t.paused ? ('Pausiert · noch ' + fmtArenaClock(t.remainingMs)) : ('Noch ' + fmtArenaClock(t.remainingMs))));
   headPanel.innerHTML = '<h3>' + t.name + ' — ' + (t.format==='swiss'?'Schweizer System':'Arena') + '</h3><p style="margin:0 0 8px;font-size:13px">'+roundLabel+' · ' + VARIANT_LABEL[t.variant] + '</p>';
   const table = document.createElement('table'); table.className = 'standings';
@@ -2461,7 +2509,7 @@ function renderTournamentActive(){
   shown.forEach(({m, i}) => {
     const item = document.createElement('div'); item.className = 'round-item';
     if(m.bye){
-      item.innerHTML = '<span class="rlabel">'+t.participants[m.aIdx].name+' — spielfrei</span><span class="badge">Freilos (+1)</span>';
+      item.innerHTML = '<span class="rlabel">'+t.participants[m.aIdx].name+' — bye</span><span class="badge">Bye (+1)</span>';
       list.appendChild(item); return;
     }
     const a = t.participants[m.aIdx], b = t.participants[m.bIdx];
@@ -2496,7 +2544,7 @@ function renderTournamentActive(){
   const ctrlPanel = document.createElement('div'); ctrlPanel.className = 'panel';
   const roundDone = roundIsComplete(t);
   if(t.finished){
-    ctrlPanel.innerHTML = '<p style="margin:0;font-weight:700;color:var(--good)">Turnier beendet — Endstand siehe Tabelle oben.</p>';
+    ctrlPanel.innerHTML = '<p style="margin:0;font-weight:700;color:var(--good)">Tournament finished — see the final standings above.</p>';
   } else if(t.format === 'swiss' && roundDone){
     const nextBtn = document.createElement('button'); nextBtn.className='primary'; nextBtn.style.width='100%';
     nextBtn.textContent = 'Start next round';
@@ -2515,7 +2563,7 @@ function renderTournamentActive(){
   } else {
     ctrlPanel.innerHTML = '<p style="margin:0;font-size:12.5px;color:var(--text2)">Play your game(s) in this round to continue.</p>';
   }
-  const endBtn = document.createElement('button'); endBtn.style.marginTop='8px'; endBtn.style.width='100%'; endBtn.textContent = 'Turnier beenden';
+  const endBtn = document.createElement('button'); endBtn.style.marginTop='8px'; endBtn.style.width='100%'; endBtn.textContent = 'End tournament';
   endBtn.addEventListener('click', () => {
     stopArenaEngine();
     tournament = null; spectateGameKey = null;
@@ -2619,14 +2667,23 @@ function releaseBotFromLiveTv(botId){
   }
 }
 
+function tournamentParticipantBotIds(){
+  // Bots entered into the currently running tournament must stay reserved
+  // for it the whole time — even while briefly idle between pairings —
+  // otherwise Live TV keeps grabbing them into unrelated background games,
+  // which is exactly what made tournament pairing get stuck with bots
+  // "never" finding a partner (they were tied up in a Live TV game
+  // instead). Live TV simply skips any bot that's currently entered in a
+  // live tournament.
+  if(!tournament || tournament.finished) return new Set();
+  return new Set(tournament.participants.filter(p => !p.isHuman).map(p => p.id));
+}
 function pickFreeBotPair(){
   // Only bots CURRENTLY playing a live game (tournament or TV) are excluded
-  // — globalBusyBotIds already covers that. Previously every bot merely
-  // *entered* into a tournament was excluded for the tournament's entire
-  // duration, which meant Live TV showed nothing at all whenever a
-  // tournament used most/all of the bot roster. Idle tournament bots
-  // waiting for their next pairing are fair game for a quick TV match.
-  const free = allBots().filter(b => !globalBusyBotIds.has(b.id));
+  // via globalBusyBotIds, plus any bot reserved by a running tournament
+  // (see tournamentParticipantBotIds above).
+  const reserved = tournamentParticipantBotIds();
+  const free = allBots().filter(b => !globalBusyBotIds.has(b.id) && !reserved.has(b.id));
   if(free.length < 2) return null;
   for(let i = free.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
