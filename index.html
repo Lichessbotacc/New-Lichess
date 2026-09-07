@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Kordava Chess • Free Online Chess</title>
+<title>DarkChess • Free Online Chess</title>
 <script>
 /* chess.js 0.13.4 — inlined (converted from ES module export to a plain global)
    so the board works with no external network dependency. */
@@ -213,7 +213,7 @@ window.Chess = Chess;
 </head>
 <body>
 <div class="topnav">
-  <div class="brand" data-view="home"><span>♞</span><span>Kordava Chess</span></div>
+  <div class="brand" data-view="home"><span>♞</span><span>DarkChess</span></div>
   <div class="navlinks">
     <div class="navitem active" data-view="home">Play</div>
     <div class="navitem" data-view="puzzles">Puzzles</div>
@@ -226,7 +226,7 @@ window.Chess = Chess;
     <div class="navitem" data-view="tools">Tools</div>
   </div>
   <div class="navside">
-    <span class="badge" id="eloBadge" title="Deine Elo, lokal für diesen anonymen Account gespeichert" style="margin-right:4px">Rating —</span>
+    <span class="badge" id="eloBadge" title="Your rating, saved locally for this anonymous account" style="margin-right:4px">Rating —</span>
     <button class="navbtn ghost">Sign in</button>
     <button class="navbtn">Register</button>
   </div>
@@ -271,8 +271,8 @@ window.Chess = Chess;
       <div class="boardgrid" id="playBoard"></div>
       <div class="player-bar">
         <div>
-          <div class="name">Du</div>
-          <div class="sub" id="bottomSub">Weiß</div>
+          <div class="name">You</div>
+          <div class="sub" id="bottomSub">White</div>
           <div class="captured-row" id="capturedBottom"></div>
         </div>
         <div class="clock" id="clockBottom">5:00</div>
@@ -284,7 +284,7 @@ window.Chess = Chess;
     <div class="side-col">
       <div class="panel">
         <h3>New Game</h3>
-        <label>Gegner</label>
+        <label>Opponent</label>
         <select id="botSelect"></select><br><br>
         <label>Time control</label>
         <select id="tcSelect">
@@ -306,20 +306,20 @@ window.Chess = Chess;
         <h3>Actions</h3>
         <div class="btnrow">
           <button id="resignBtn">Resign</button>
-          <button id="drawBtn">Remis anbieten</button>
+          <button id="drawBtn">Offer draw</button>
           <button id="flipBtn">Flip board</button>
           <button id="undoBtn">Undo move</button>
           <button id="cancelPremoveBtn">Cancel premove</button>
           <button id="berserkBtn" style="display:none;background:var(--bad);color:#fff;border-color:var(--bad)">⚡ Berserk</button>
         </div>
-        <p style="margin:10px 0 0;font-size:11.5px;color:var(--text2)">Tipp: Der Bot denkt länger, je mehr Bedenkzeit er noch hat, und je höher sein Level ist — bei knapper Zeit spielt er schneller. Klicke eine Figur und ein Zielfeld während der Bot am Zug ist, um einen Premove zu setzen (Rechtsklick aufs Brett, um ihn abzubrechen).</p>
+        <p style="margin:10px 0 0;font-size:11.5px;color:var(--text2)">Tip: the bot thinks longer the more time it still has left and the higher its level is — when time is short it moves faster. Click a piece and a target square while the bot is thinking to set a premove (right-click the board to cancel it).</p>
       </div>
       <div class="panel">
-        <h3>Einstellungen</h3>
+        <h3>Settings</h3>
         <div class="settings-row"><span>Sound</span><label class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></label></div>
         <div class="settings-row"><span>Dark mode</span><label class="switch"><input type="checkbox" id="darkToggle"><span class="slider"></span></label></div>
-        <div class="settings-row"><span>Koordinaten</span><label class="switch"><input type="checkbox" id="coordsToggle" checked><span class="slider"></span></label></div>
-        <div class="settings-row" style="align-items:flex-start"><span>Brettfarbe</span>
+        <div class="settings-row"><span>Coordinates</span><label class="switch"><input type="checkbox" id="coordsToggle" checked><span class="slider"></span></label></div>
+        <div class="settings-row" style="align-items:flex-start"><span>Board color</span>
           <div class="swatch-row" id="boardThemeSwatches"></div>
         </div>
       </div>
@@ -365,30 +365,26 @@ window.Chess = Chess;
 
 <!-- ================= BOTS ================= -->
 <section class="view" id="view-bots">
-  <div class="hero"><h1>Bots</h1><p>Spiele gegen abgestufte Bots (Level 1–8) oder erstelle deine eigenen für Turniere.</p></div>
+  <div class="hero"><h1>Bots</h1><p>Play against graded bots (Level 1–8) or create your own for tournaments.</p></div>
   <div class="create-bot-panel">
     <div class="panel">
       <h3>Eigenen Bot erstellen</h3>
       <div class="btnrow" style="align-items:flex-end">
-        <div style="flex:2;min-width:160px"><label>Name</label><input type="text" id="botNameInput" placeholder="z.B. Endspiel-Emma"></div>
-        <div style="flex:1;min-width:120px"><label>Level (1–8)</label>
-          <select id="botLevelInput">
-            <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
-            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            <option value="7">7</option><option value="8">8</option>
-          </select>
+        <div style="flex:2;min-width:160px"><label>Name</label><input type="text" id="botNameInput" placeholder="e.g. Endgame Emma"></div>
+        <div style="flex:2;min-width:220px"><label>Strength: <span id="botStrengthValue">50</span> / 100</label>
+          <input type="range" id="botStrengthInput" min="1" max="100" value="50" style="width:100%">
         </div>
       </div>
       <div class="btnrow" style="align-items:flex-end;margin-top:10px">
-        <div style="flex:1;min-width:150px"><label>Spielstil</label>
+        <div style="flex:1;min-width:150px"><label>Play style</label>
           <select id="botStyleInput">
-            <option value="balanced">Ausgewogen</option>
-            <option value="aggressive">Aggressiv (Angriff &amp; Opfer)</option>
-            <option value="positional">Positionell (Zentrum &amp; Entwicklung)</option>
-            <option value="defensive">Defensiv (solide, wenig Risiko)</option>
+            <option value="balanced">Balanced</option>
+            <option value="aggressive">Aggressive (attack &amp; sacrifice)</option>
+            <option value="positional">Positional (center &amp; development)</option>
+            <option value="defensive">Defensive (solid, low risk)</option>
           </select>
         </div>
-        <div style="flex:1;min-width:150px"><label>Eröffnung</label>
+        <div style="flex:1;min-width:150px"><label>Opening</label>
           <select id="botOpeningInput">
             <option value="random">Beliebig</option>
             <option value="e4">1.e4 (Offen)</option>
@@ -401,16 +397,16 @@ window.Chess = Chess;
       <div class="btnrow" style="align-items:flex-end;margin-top:10px">
         <div style="flex:1;min-width:150px"><label>Spielgeschwindigkeit</label>
           <select id="botSpeedInput">
-            <option value="slow">Bedächtig (denkt lange nach)</option>
+            <option value="slow">Deliberate (thinks for a long time)</option>
             <option value="normal" selected>Normal</option>
-            <option value="fast">Schnell (zieht zügig)</option>
+            <option value="fast">Fast (moves quickly)</option>
           </select>
         </div>
-        <div style="flex:1;min-width:150px"><label>Zeitnot-Verhalten</label>
+        <div style="flex:1;min-width:150px"><label>Time-pressure behavior</label>
           <select id="botTimeHandlingInput">
-            <option value="good">Gut (bleibt auch in Zeitnot ruhig)</option>
+            <option value="good">Good (stays calm even in time trouble)</option>
             <option value="normal" selected>Normal</option>
-            <option value="poor">Schwach (patzt in Zeitnot leicht)</option>
+            <option value="poor">Poor (blunders easily in time trouble)</option>
           </select>
         </div>
         <button class="primary" id="createBotBtn">Bot erstellen</button>
@@ -422,20 +418,20 @@ window.Chess = Chess;
 
 <!-- ================= TOURNAMENTS ================= -->
 <section class="view" id="view-tournaments">
-  <div class="hero"><h1>Tournaments</h1><p>Arena oder Schweizer System mit Bots — deine Partien spielst du live, alle Partien (auch Bot vs. Bot) werden wirklich zu Ende gespielt.</p></div>
+  <div class="hero"><h1>Tournaments</h1><p>Arena or Swiss system with bots — you play your games live, and all games (including bot vs. bot) are played out for real.</p></div>
   <div class="layout" style="align-items:flex-start">
     <div class="side-col" style="max-width:480px">
       <div class="panel" id="tournamentSetupPanel">
-        <h3>Neues Turnier</h3>
-        <label>Turniername</label>
-        <input type="text" id="tournamentNameInput" placeholder="z.B. Sommer-Arena" style="margin-bottom:10px">
+        <h3>New tournament</h3>
+        <label>Tournament name</label>
+        <input type="text" id="tournamentNameInput" placeholder="e.g. Summer Arena" style="margin-bottom:10px">
         <label>Format</label>
         <select id="tournamentFormatSelect" style="margin-bottom:10px">
           <option value="arena">Arena (fester Zeitrahmen, laufende Neu-Paarung, wie lichess)</option>
-          <option value="swiss">Schweizer System (feste Rundenzahl, Paarung nach Punktestand)</option>
+          <option value="swiss">Swiss system (fixed number of rounds, paired by score)</option>
         </select>
         <div id="arenaDurationRow">
-          <label>Turnierdauer</label>
+          <label>Tournament duration</label>
           <select id="arenaDurationSelect" style="margin-bottom:10px">
             <option value="5">5 Minuten</option>
             <option value="10">10 Minuten</option>
@@ -446,13 +442,13 @@ window.Chess = Chess;
           </select>
         </div>
         <div id="swissRoundsRow" style="display:none">
-          <label>Anzahl Runden</label>
+          <label>Number of rounds</label>
           <select id="swissRoundsSelect" style="margin-bottom:10px">
             <option value="3">3</option><option value="4">4</option><option value="5" selected>5</option>
             <option value="6">6</option><option value="7">7</option><option value="9">9</option>
           </select>
         </div>
-        <label>Zeitkontrolle des Turniers</label>
+        <label>Tournament time control</label>
         <select id="tournamentTcSelect" style="margin-bottom:10px">
           <option value="0.25|0">15+0 UltraBullet</option>
           <option value="1|0">1+0 Bullet</option><option value="2|1">2+1 Bullet</option>
@@ -460,11 +456,11 @@ window.Chess = Chess;
           <option value="10|0">10+0 Rapid</option><option value="15|10">15+10 Rapid</option>
           <option value="30|0">30+0 Classical</option>
         </select>
-        <label>Teilnehmende Bots</label>
+        <label>Participating bots</label>
         <div id="tournamentBotList"></div>
         <br>
-        <button class="primary" id="createTournamentBtn" style="width:100%">Turnier erstellen</button>
-        <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">Deine Partien spielst du live auf dem Brett (mit Uhr). Partien zwischen zwei Bots werden wirklich bis zum Ende gespielt (Matt/Patt/Remis), nicht gewürfelt, und live auf dem Zuschauerbrett gezeigt. In der Arena wirst du sofort neu gepaart, sobald du frei bist — wie bei lichess. Du kannst die Arena jederzeit pausieren und fortsetzen.</p>
+        <button class="primary" id="createTournamentBtn" style="width:100%">Create tournament</button>
+        <p style="margin-top:8px;font-size:11.5px;color:var(--text2)">You play your own games live on the board (with a clock). Games between two bots are genuinely played to the end (checkmate/stalemate/draw), not rolled randomly, and shown live on the spectator board. In the arena you get re-paired instantly as soon as you're free — just like on lichess. You can pause and resume the arena at any time.</p>
       </div>
     </div>
     <div class="side-col" style="max-width:640px;display:none" id="tournamentActivePanel">
@@ -480,7 +476,7 @@ window.Chess = Chess;
         </div>
         <div class="boardgrid" id="spectateBoard" style="width:min(88vw,300px);height:min(88vw,300px);margin:0 auto"></div>
         <div class="btnrow" style="margin-top:10px;justify-content:center" id="spectatePicker"></div>
-        <p style="margin-top:8px;font-size:11px;color:var(--text2)">Zeigt eine laufende Bot-gegen-Bot-Partie dieser Arena live, Zug für Zug, mit echter Uhr für beide Bots. Da die Seite ohne Server läuft, lassen sich keine echten fremden Spieler beobachten — dies ist die Live-Ansicht deiner eigenen Arena-Partien im Hintergrund.</p>
+        <p style="margin-top:8px;font-size:11px;color:var(--text2)">Shows a running bot-vs-bot game from this arena live, move by move, with a real clock for both bots. Since the site runs without a server, real strangers can't actually be spectated — this is the live view of your own arena games running in the background.</p>
       </div>
     </div>
   </div>
@@ -488,7 +484,7 @@ window.Chess = Chess;
 
 <!-- ================= LEADERBOARD ================= -->
 <section class="view" id="view-leaderboard">
-  <div class="hero"><h1>Leaderboard</h1><p>Elo pro Variante — für dich (anonymer Account) und alle Bots.</p></div>
+  <div class="hero"><h1>Leaderboard</h1><p>Rating per variant — for you (anonymous account) and all bots.</p></div>
   <div class="layout" style="justify-content:center">
     <div class="side-col" style="max-width:760px">
       <div class="panel">
@@ -497,7 +493,7 @@ window.Chess = Chess;
           <thead><tr><th>#</th><th>Name</th><th>Rating</th></tr></thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
-        <button class="navbtn ghost" id="resetEloBtn" style="margin-top:10px">Alle Elo-Werte auf 1500 zurücksetzen</button>
+        <button class="navbtn ghost" id="resetEloBtn" style="margin-top:10px">Reset all ratings to 1500</button>
       </div>
     </div>
   </div>
@@ -592,7 +588,7 @@ window.Chess = Chess;
 
 <!-- ================= LIVE TV (24/7 bot vs bot, real Stockfish) ================= -->
 <section class="view" id="view-watch">
-  <div class="hero"><h1>Live TV</h1><p>Bots spielen rund um die Uhr zufällig gegeneinander — echtes Stockfish, zufällige Zeitkontrolle und eine echte Uhr pro Partie. Sobald eine Partie endet, startet sofort die nächste.</p></div>
+  <div class="hero"><h1>Live TV</h1><p>Bots play against each other randomly around the clock — real Stockfish, random time control, and a real clock per game. As soon as one game ends, the next one starts immediately.</p></div>
   <div class="layout">
     <div class="board-col">
       <div id="tvLabel" style="font-weight:700;color:var(--text-bright);margin-bottom:4px;text-align:center;min-height:20px"></div>
@@ -606,11 +602,11 @@ window.Chess = Chess;
     </div>
     <div class="side-col">
       <div class="panel">
-        <h3>Laufende Partien</h3>
+        <h3>Ongoing games</h3>
         <div class="btnrow" id="tvChannelPicker" style="flex-direction:column;align-items:stretch"></div>
       </div>
       <div class="panel">
-        <p style="margin:0;font-size:11.5px;color:var(--text2)">Ehrliche Grenze: diese Seite läuft ohne Server. Die Partien laufen weiter, solange dieser Tab geöffnet ist — schließt du ihn, pausiert alles bis zum nächsten Öffnen. Echtes 24/7 im Hintergrund (auch bei geschlossenem Tab) bräuchte einen dauerhaft laufenden Server-Prozess, den eine einzelne HTML-Datei nicht haben kann.</p>
+        <p style="margin:0;font-size:11.5px;color:var(--text2)">Honest limitation: this site runs without a server. Games keep running as long as this tab stays open — close it, and everything pauses until you reopen it. True 24/7 in the background (even with the tab closed) would need a permanently running server process, which a single HTML file can't have.</p>
       </div>
     </div>
   </div>
@@ -618,7 +614,7 @@ window.Chess = Chess;
 <section class="view" id="view-notice-community">
   <div class="notice-box">
     <h2>Community</h2>
-    <p>Player profiles, teams and forums need accounts and a database on a server. This build of Kordava Chess is a single static file with no backend, so those features aren't available here.</p>
+    <p>Player profiles, teams and forums need accounts and a database on a server. This build of DarkChess is a single static file with no backend, so those features aren't available here.</p>
     <p style="color:var(--text2)">Everything on this page (Play, Puzzles, Bots, Tournaments, Analysis, Learn, Watch) runs entirely in your browser and needs no server.</p>
   </div>
 </section>
@@ -626,11 +622,11 @@ window.Chess = Chess;
 <div id="promoOverlayContainer"></div>
 
 
-<footer>Kordava Chess — an independent, free chess platform. Not affiliated with any other chess site.</footer>
+<footer>DarkChess — an independent, free chess platform. Not affiliated with any other chess site.</footer>
 
 <script>
 /* ============================================================
-   Kordava Chess — single-file build. All features on this page
+   DarkChess — single-file build. All features on this page
    run entirely client-side (chess.js for rules, no backend).
    ============================================================ */
 
@@ -904,7 +900,7 @@ function matchScoreFor(idA, idB){
 function matchScoreHtml(idA, idB, nameA, nameB){
   const s = matchScoreFor(idA, idB);
   let html = nameA + ' <b>' + s.aWins + '</b>&nbsp;–&nbsp;<b>' + s.bWins + '</b> ' + nameB;
-  if(s.draws) html += ' <span style="opacity:.75">(' + s.draws + ' Remis)</span>';
+  if(s.draws) html += ' <span style="opacity:.75">(' + s.draws + ' draws)</span>';
   return html;
 }
 
@@ -947,21 +943,29 @@ function saveCustomBots(list){ safeSet(LS_BOTS, JSON.stringify(list)); }
 function allBots(){ return defaultBots().concat(loadCustomBots()); }
 function botById(id){ return allBots().find(b => b.id === id); }
 
+const botStrengthInputEl = document.getElementById('botStrengthInput');
+const botStrengthValueEl = document.getElementById('botStrengthValue');
+if(botStrengthInputEl){
+  botStrengthInputEl.addEventListener('input', () => { botStrengthValueEl.textContent = botStrengthInputEl.value; });
+}
 document.getElementById('createBotBtn').addEventListener('click', () => {
   const nameEl = document.getElementById('botNameInput');
-  const lvlEl = document.getElementById('botLevelInput');
+  const strengthEl = document.getElementById('botStrengthInput');
   const name = nameEl.value.trim();
   if(!name){ nameEl.focus(); return; }
-  const level = parseInt(lvlEl.value, 10);
+  const strength = parseInt(strengthEl.value, 10);
+  const level = strengthToLevel(strength);
   const style = document.getElementById('botStyleInput').value;
   const opening = document.getElementById('botOpeningInput').value;
   const speed = document.getElementById('botSpeedInput').value;
   const timeHandling = document.getElementById('botTimeHandlingInput').value;
   const list = loadCustomBots();
   const id = 'custom_' + Date.now();
-  list.push({ id, name, level, rating: 1500, custom:true, style, opening, speed, timeHandling });
+  list.push({ id, name, level, strength, rating: 1500, custom:true, style, opening, speed, timeHandling });
   saveCustomBots(list);
   nameEl.value = '';
+  strengthEl.value = '50';
+  botStrengthValueEl.textContent = '50';
   renderBotGrid();
   renderTournamentBotList();
   renderBotSelect();
@@ -980,16 +984,16 @@ function renderBotGrid(){
     const card = document.createElement('div');
     card.className = 'bot-card';
     const initials = bot.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const styleLabel = {balanced:'Ausgewogen',aggressive:'Aggressiv',positional:'Positionell',defensive:'Defensiv'}[bot.style||'balanced'];
+    const styleLabel = {balanced:'Balanced',aggressive:'Aggressive',positional:'Positional',defensive:'Defensive'}[bot.style||'balanced'];
     card.innerHTML = '<div class="bot-head"><div class="bot-avatar">'+initials+'</div>'
-      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · '+VARIANT_LABEL[selectedVariantForUI]+' '+Math.round(getRating(bot.id,selectedVariantForUI))+(bot.custom?' · eigener Bot':'')+'</div>'
-      + '<div class="bot-meta">'+styleLabel+(bot.opening&&bot.opening!=='random'?' · Eröffnung: '+bot.opening.toUpperCase():'')+'</div></div></div>';
+      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">'+(bot.strength?('Strength '+bot.strength+'/100'):('Level '+bot.level))+' · '+VARIANT_LABEL[selectedVariantForUI]+' '+Math.round(getRating(bot.id,selectedVariantForUI))+(bot.custom?' · custom bot':'')+'</div>'
+      + '<div class="bot-meta">'+styleLabel+(bot.opening&&bot.opening!=='random'?' · Opening: '+bot.opening.toUpperCase():'')+'</div></div></div>';
     const row = document.createElement('div'); row.className = 'btnrow';
     const playBtn = document.createElement('button'); playBtn.className='primary'; playBtn.textContent='Spielen';
     playBtn.addEventListener('click', () => { showView('home'); startNewGame(undefined, bot.id); });
     row.appendChild(playBtn);
     if(bot.custom){
-      const delBtn = document.createElement('button'); delBtn.textContent='Löschen';
+      const delBtn = document.createElement('button'); delBtn.textContent='Delete';
       delBtn.addEventListener('click', () => deleteBot(bot.id));
       row.appendChild(delBtn);
     }
@@ -1178,7 +1182,7 @@ document.getElementById('drawBtn') && document.getElementById('drawBtn').addEven
   const botAdvantage = botColor === 'w' ? score : -score;
   const acceptChance = botAdvantage > 150 ? 0.05 : botAdvantage > 30 ? 0.35 : 0.85;
   if(Math.random() < acceptChance) endGame('Draw by agreement', '1/2-1/2');
-  else { statusEl.textContent = currentBot.name + ' lehnt das Remis ab.'; setTimeout(() => { if(!gameOver) checkGameEnd(); }, 1600); }
+  else { statusEl.textContent = currentBot.name + ' declines the draw.'; setTimeout(() => { if(!gameOver) checkGameEnd(); }, 1600); }
 });
 
 function renderGameOverBanner(message, result){
@@ -1194,7 +1198,7 @@ function renderGameOverBanner(message, result){
     colorSel.value = humanColor === 'w' ? 'b' : 'w';
     startNewGame(undefined, currentBot ? currentBot.id : undefined);
   });
-  const newOppBtn = document.createElement('button'); newOppBtn.textContent = 'Neuer Gegner';
+  const newOppBtn = document.createElement('button'); newOppBtn.textContent = 'New opponent';
   newOppBtn.addEventListener('click', () => { showView('bots'); });
   row.appendChild(rematchBtn); row.appendChild(newOppBtn);
   box.appendChild(row);
@@ -1306,8 +1310,8 @@ function renderMatchScoreBar(){
   if(!bar) return;
   if(!currentBot){ bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
-  bar.innerHTML = matchScoreHtml('human', currentBot.id, 'Du', currentBot.name)
-    + '<span class="rating-chip">Du ' + Math.round(getRating('human', currentVariant)) + '</span>'
+  bar.innerHTML = matchScoreHtml('human', currentBot.id, 'You', currentBot.name)
+    + '<span class="rating-chip">You ' + Math.round(getRating('human', currentVariant)) + '</span>'
     + '<span class="rating-chip">' + currentBot.name + ' ' + Math.round(getRating(currentBot.id, currentVariant)) + '</span>';
 }
 
@@ -1531,6 +1535,35 @@ const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:1, 4:1, 5:2, 6:2, 7:3, 8:3};
 const BLUNDER_BY_LEVEL = {1:.65, 2:.50, 3:.35, 4:.22, 5:.12, 6:.05, 7:.02, 8:0};
 const NOISE_BY_LEVEL    = {1:260, 2:190, 3:130, 4:85, 5:45, 6:20, 7:8, 8:0};
 
+/* Custom bots are created with a 1–100 "Strength" slider instead of a
+   coarse 1–8 level select. strengthToLevel() gives a rounded 1–8 level
+   for display and for anything that still expects a plain level number.
+   statsForStrength() linearly interpolates every difficulty knob (search
+   depth, blunder chance, move noise, and the real-Stockfish skill/depth/
+   movetime triple) between the two neighbouring levels, so every point on
+   the slider produces a genuinely distinct playing strength. */
+function strengthToFloatLevel(strength){
+  const t = (Math.max(1, Math.min(100, strength)) - 1) / 99;
+  return 1 + t*7;
+}
+function strengthToLevel(strength){ return Math.round(strengthToFloatLevel(strength)); }
+function statsForStrength(strength){
+  const f = strengthToFloatLevel(strength);
+  const lo = Math.max(1, Math.min(8, Math.floor(f)));
+  const hi = Math.max(1, Math.min(8, Math.ceil(f)));
+  const frac = f - lo;
+  const lerp = (a, b) => a + (b - a) * frac;
+  return {
+    level: Math.round(f),
+    depth: Math.round(lerp(DEPTH_BY_LEVEL[lo], DEPTH_BY_LEVEL[hi])),
+    blunder: lerp(BLUNDER_BY_LEVEL[lo], BLUNDER_BY_LEVEL[hi]),
+    noise: lerp(NOISE_BY_LEVEL[lo], NOISE_BY_LEVEL[hi]),
+    sfSkill: lerp(SF_LEVEL_SKILL[lo-1], SF_LEVEL_SKILL[hi-1]),
+    sfDepth: Math.round(lerp(SF_LEVEL_DEPTH[lo-1], SF_LEVEL_DEPTH[hi-1])),
+    sfMovetime: Math.round(lerp(SF_LEVEL_MOVETIME[lo-1], SF_LEVEL_MOVETIME[hi-1]))
+  };
+}
+
 function pickMoveForLevel(g, level, bot){
   const moves = g.moves({verbose:true});
   if(moves.length === 0) return null;
@@ -1543,12 +1576,13 @@ function pickMoveForLevel(g, level, bot){
     }
   }
 
-  const depth = DEPTH_BY_LEVEL[level] || 2;
-  const blunderChance = (BLUNDER_BY_LEVEL[level] || 0) * (bot && bot.blunderMult || 1);
+  const stats = (bot && bot.strength) ? statsForStrength(bot.strength) : null;
+  const depth = stats ? stats.depth : (DEPTH_BY_LEVEL[level] || 2);
+  const blunderChance = (stats ? stats.blunder : (BLUNDER_BY_LEVEL[level] || 0)) * (bot && bot.blunderMult || 1);
   if(Math.random() < Math.min(0.95, blunderChance)){
     return moves[Math.floor(Math.random()*moves.length)];
   }
-  const noise = NOISE_BY_LEVEL[level] || 0;
+  const noise = stats ? stats.noise : (NOISE_BY_LEVEL[level] || 0);
   const maximizing = g.turn() === 'w';
   const style = bot && bot.style;
   let bestScore = maximizing ? -Infinity : Infinity, bestMoves = [];
@@ -1651,7 +1685,7 @@ function createStockfishWorker(){
 
 async function ensureEnginePool(){
   if(sfLoadPromise) return sfLoadPromise;
-  setSfStatus('Lade Stockfish …');
+  setSfStatus('Loading Stockfish …');
   sfLoadPromise = (async () => {
     try {
       const pool = [];
@@ -1661,14 +1695,14 @@ async function ensureEnginePool(){
       }
       const allReady = Promise.all(pool.map(slot => slot.engine.waitReady()));
       const outcome = await Promise.race([allReady.then(() => 'ready'), timeoutAfter(SF_LOAD_TIMEOUT_MS, 'timeout')]);
-      if(outcome !== 'ready') throw new Error('Stockfish hat nicht rechtzeitig geantwortet (timeout)');
+      if(outcome !== 'ready') throw new Error('Stockfish did not respond in time (timeout)');
       sfPool = pool;
       stockfishAvailable = true;
-      setSfStatus('Stockfish aktiv (echte Engine, geladen von cdnjs)');
+      setSfStatus('Stockfish active (real engine, loaded from cdnjs)');
     } catch(err){
-      console.warn('Stockfish CDN konnte nicht geladen werden, nutze eingebaute Fallback-Engine:', err);
+      console.warn('Stockfish CDN could not be loaded, using built-in fallback engine:', err);
       stockfishAvailable = false;
-      setSfStatus('Stockfish nicht erreichbar (kein Internet beim Laden der Seite?) — nutze eingebaute Ersatz-Engine');
+      setSfStatus('Stockfish unreachable (no internet when the page loaded?) — using built-in fallback engine');
     }
   })();
   return sfLoadPromise;
@@ -1691,14 +1725,21 @@ async function acquireEngineSlot(){
 }
 function releaseEngineSlot(slot){ slot.busy = false; }
 
-async function stockfishMove(g, level){
+async function stockfishMove(g, level, bot){
   const slot = await acquireEngineSlot();
   if(!slot) return null;
   try {
-    const idx = Math.max(1, Math.min(8, level)) - 1;
-    slot.engine.setSkill(SF_LEVEL_SKILL[idx]);
+    let skill, depth, movetime;
+    if(bot && bot.strength){
+      const stats = statsForStrength(bot.strength);
+      skill = stats.sfSkill; depth = stats.sfDepth; movetime = stats.sfMovetime;
+    } else {
+      const idx = Math.max(1, Math.min(8, level)) - 1;
+      skill = SF_LEVEL_SKILL[idx]; depth = SF_LEVEL_DEPTH[idx]; movetime = SF_LEVEL_MOVETIME[idx];
+    }
+    slot.engine.setSkill(skill);
     const uci = await Promise.race([
-      slot.engine.bestMoveForFen(g.fen(), SF_LEVEL_DEPTH[idx], SF_LEVEL_MOVETIME[idx]),
+      slot.engine.bestMoveForFen(g.fen(), depth, movetime),
       timeoutAfter(SF_MOVE_TIMEOUT_MS, null)
     ]);
     if(!uci || uci === '(none)') return null;
@@ -1722,7 +1763,7 @@ async function pickMoveForLevelAsync(g, level, bot){
     const forced = pickMoveForLevel(g, level, bot);
     if(forced) return forced;
   }
-  const sf = await stockfishMove(g, level);
+  const sf = await stockfishMove(g, level, bot);
   return sf || pickMoveForLevel(g, level, bot);
 }
 
@@ -1747,6 +1788,14 @@ function playFullEngineGame(levelA, levelB){
   return aIsWhite ? scoreForWhite : (1 - scoreForWhite);
 }
 
+/* Continuous time-based scaling shared by both think-delay functions below:
+   the less time a bot has left, the faster it moves; the more time it has,
+   the longer it takes to think — up to a cap so it never feels frozen. */
+function timeScaleFactor(remSec){
+  if(remSec === null || remSec === undefined) return 1;
+  if(remSec <= 8) return 0.12;
+  return Math.max(0.12, Math.min(2.6, remSec/45));
+}
 function getThinkDelayMs(){
   const level = currentBot ? currentBot.level : 3;
   const botColor = humanColor === 'w' ? 'b' : 'w';
@@ -1757,12 +1806,10 @@ function getThinkDelayMs(){
   const speedMult = { slow:1.6, normal:1, fast:0.45 }[currentBot && currentBot.speed] || 1;
   delay *= speedMult;
   if(botTime !== null){
+    delay *= timeScaleFactor(botTime);
     if(botTime <= 8) delay = Math.min(delay, 90 + Math.random()*120);
-    else if(botTime <= 25) delay *= 0.35;
-    else if(botTime <= 60) delay *= 0.65;
-    else if(botTime > 240) delay *= 1.15;
   }
-  return Math.round(Math.min(delay, 2600));
+  return Math.round(Math.min(delay, 4500));
 }
 function timePressureBlunderMult(){
   if(!currentBot) return 1;
@@ -1888,7 +1935,7 @@ function startNewGame(fen, botIdOverride){
   const colorChoice = document.getElementById('colorSelect').value;
   humanColor = colorChoice === 'r' ? (Math.random()<0.5?'w':'b') : colorChoice;
   boardOrientation = humanColor;
-  bottomSubEl.textContent = (humanColor === 'w' ? 'Weiß' : 'Schwarz') + ' · ' + VARIANT_LABEL[currentVariant] + ' ' + Math.round(getRating('human', currentVariant));
+  bottomSubEl.textContent = (humanColor === 'w' ? 'White' : 'Black') + ' · ' + VARIANT_LABEL[currentVariant] + ' ' + Math.round(getRating('human', currentVariant));
   syncPanels(); renderPlayBoard();
   updateClockDisplay();
   if(game.turn() !== humanColor) scheduleComputerMove();
@@ -1907,7 +1954,7 @@ document.getElementById('berserkBtn').addEventListener('click', () => {
   activeTournamentMatch.berserked = true;
   document.getElementById('berserkBtn').style.display = 'none';
   updateClockDisplay();
-  statusEl.textContent = '⚡ Berserk! Deine Bedenkzeit ist halbiert — ein Sieg gibt einen Bonuspunkt.';
+  statusEl.textContent = '⚡ Berserk! Your remaining time is halved — a win gives a bonus point.';
 });
 renderBotSelect();
 startNewGame();
@@ -2044,12 +2091,12 @@ document.getElementById('tournamentTcSelect').addEventListener('change', (e) => 
 document.getElementById('createTournamentBtn').addEventListener('click', () => {
   const nameInput = document.getElementById('tournamentNameInput');
   const checked = [...document.querySelectorAll('#tournamentBotList input[data-botcheck]:checked')].map(cb => botById(cb.value));
-  if(checked.length < 1){ alert('Wähle mindestens einen Bot aus.'); return; }
+  if(checked.length < 1){ alert('Select at least one bot.'); return; }
   const format = document.getElementById('tournamentFormatSelect').value;
   const tcValue = document.getElementById('tournamentTcSelect').value;
   const [tcMin, tcInc] = tcValue.split('|').map(Number);
   const variant = variantForTC(tcMin, tcInc);
-  const participants = [{ id:'human', name:'Du', isHuman:true }]
+  const participants = [{ id:'human', name:'You', isHuman:true }]
     .concat(checked.map(b => ({ id:b.id, name:b.name, isHuman:false, level:b.level })));
   const durationMin = parseInt(document.getElementById('arenaDurationSelect').value, 10);
   stopArenaEngine();
@@ -2137,12 +2184,10 @@ function computeBotThinkDelayMs(level, bot, remainingMs){
   delay *= speedMult;
   if(remainingMs !== null && remainingMs !== undefined){
     const remSec = remainingMs/1000;
+    delay *= timeScaleFactor(remSec);
     if(remSec <= 8) delay = Math.min(delay, 90 + Math.random()*120);
-    else if(remSec <= 25) delay *= 0.35;
-    else if(remSec <= 60) delay *= 0.65;
-    else if(remSec > 240) delay *= 1.15;
   }
-  return Math.min(delay, 2600);
+  return Math.min(delay, 4500);
 }
 function timePressureBlunderMultFor(bot, remainingMs){
   if(remainingMs === null || remainingMs === undefined) return 1;
@@ -2396,7 +2441,7 @@ function renderTournamentActive(){
     : (t.finished ? 'Beendet' : (t.paused ? ('Pausiert · noch ' + fmtArenaClock(t.remainingMs)) : ('Noch ' + fmtArenaClock(t.remainingMs))));
   headPanel.innerHTML = '<h3>' + t.name + ' — ' + (t.format==='swiss'?'Schweizer System':'Arena') + '</h3><p style="margin:0 0 8px;font-size:13px">'+roundLabel+' · ' + VARIANT_LABEL[t.variant] + '</p>';
   const table = document.createElement('table'); table.className = 'standings';
-  table.innerHTML = '<thead><tr><th>#</th><th>Teilnehmer</th><th>Rating</th><th>Punkte</th><th>Partien</th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>#</th><th>Participant</th><th>Rating</th><th>Points</th><th>Games</th></tr></thead>';
   const tbody = document.createElement('tbody');
   tournamentStandingsRows(t).forEach((row, i) => {
     const tr = document.createElement('tr'); if(row.isHuman) tr.className = 'you';
@@ -2409,7 +2454,7 @@ function renderTournamentActive(){
 
   const humanIdx = t.participants.findIndex(p => p.isHuman);
   const roundsPanel = document.createElement('div'); roundsPanel.className = 'panel';
-  roundsPanel.innerHTML = '<h3>' + (t.format==='arena' ? 'Laufende &amp; letzte Partien' : 'Diese Runde') + '</h3>';
+  roundsPanel.innerHTML = '<h3>' + (t.format==='arena' ? 'Ongoing &amp; recent games' : 'This round') + '</h3>';
   const list = document.createElement('div'); list.className = 'round-list';
   const indexed = t.currentRoundMatches.map((m,i)=>({m,i}));
   const shown = t.format === 'arena' ? indexed.slice(-14).reverse() : indexed;
@@ -2422,9 +2467,9 @@ function renderTournamentActive(){
     const a = t.participants[m.aIdx], b = t.participants[m.bIdx];
     const aRating = Math.round(getRating(a.id, t.variant)), bRating = Math.round(getRating(b.id, t.variant));
     const involvesHuman = m.aIdx === humanIdx || m.bIdx === humanIdx;
-    let badge = '<span class="badge">läuft</span>';
+    let badge = '<span class="badge">running</span>';
     if(m.result !== null){
-      const res = m.result===1 ? a.name+' gewinnt' : m.result===0 ? b.name+' gewinnt' : 'Remis';
+      const res = m.result===1 ? a.name+' wins' : m.result===0 ? b.name+' wins' : 'Draw';
       badge = '<span class="badge">'+res+'</span>';
     }
     item.innerHTML = '<span class="rlabel">'+a.name+' ('+aRating+') vs '+b.name+' ('+bRating+')</span>';
@@ -2454,21 +2499,21 @@ function renderTournamentActive(){
     ctrlPanel.innerHTML = '<p style="margin:0;font-weight:700;color:var(--good)">Turnier beendet — Endstand siehe Tabelle oben.</p>';
   } else if(t.format === 'swiss' && roundDone){
     const nextBtn = document.createElement('button'); nextBtn.className='primary'; nextBtn.style.width='100%';
-    nextBtn.textContent = 'Nächste Runde starten';
+    nextBtn.textContent = 'Start next round';
     nextBtn.addEventListener('click', startTournamentRound);
     ctrlPanel.appendChild(nextBtn);
   } else if(t.format === 'arena'){
     const pauseBtn = document.createElement('button'); pauseBtn.className='primary'; pauseBtn.style.width='100%';
-    pauseBtn.textContent = t.paused ? '▶ Arena fortsetzen' : '⏸ Arena pausieren';
+    pauseBtn.textContent = t.paused ? '▶ Resume arena' : '⏸ Pause arena';
     pauseBtn.addEventListener('click', () => { t.paused = !t.paused; t.lastTickTs = Date.now(); renderTournamentActive(); });
     ctrlPanel.appendChild(pauseBtn);
     const info = document.createElement('p'); info.style.cssText = 'margin:8px 0 0;font-size:12.5px;color:var(--text2)';
     info.textContent = t.paused
-      ? 'Pausiert: Uhr, Neu-Paarung und alle laufenden Bot-Partien (inkl. deren eigener Uhr) stehen still.'
-      : 'Läuft — sobald du frei bist, wirst du automatisch neu gepaart und direkt aufs Brett gebracht.';
+      ? 'Paused: the clock, re-pairing, and all running bot games (including their own clocks) are frozen.'
+      : 'Running — as soon as you\'re free, you\'ll be automatically re-paired and taken straight to the board.';
     ctrlPanel.appendChild(info);
   } else {
-    ctrlPanel.innerHTML = '<p style="margin:0;font-size:12.5px;color:var(--text2)">Spiele deine Partie(n) dieser Runde, um weiterzumachen.</p>';
+    ctrlPanel.innerHTML = '<p style="margin:0;font-size:12.5px;color:var(--text2)">Play your game(s) in this round to continue.</p>';
   }
   const endBtn = document.createElement('button'); endBtn.style.marginTop='8px'; endBtn.style.width='100%'; endBtn.textContent = 'Turnier beenden';
   endBtn.addEventListener('click', () => {
@@ -2519,7 +2564,7 @@ function renderSpectateBoard(){
   const whiteName = live.aIsWhite ? a.name : b.name;
   const blackName = live.aIsWhite ? b.name : a.name;
   const whiteId = live.aIsWhite ? a.id : b.id, blackId = live.aIsWhite ? b.id : a.id;
-  labelEl.textContent = whiteName + ' (Weiß) vs ' + blackName + ' (Schwarz)' + (tournament.paused ? ' · pausiert' : '');
+  labelEl.textContent = whiteName + ' (White) vs ' + blackName + ' (Black)' + (tournament.paused ? ' · paused' : '');
   if(scoreEl){
     scoreEl.style.display = 'flex';
     scoreEl.innerHTML = matchScoreHtml(a.id, b.id, a.name, b.name);
@@ -2682,12 +2727,12 @@ function renderTvBoard(){
   const clockBottomE = document.getElementById('tvClockBottom');
   if(!boardEl3) return;
   const live = botTvGames[botTvSpectateKey];
-  if(!live){ boardEl3.innerHTML = ''; if(labelEl) labelEl.textContent = 'Partien werden vorbereitet …'; if(scoreEl) scoreEl.style.display='none'; return; }
+  if(!live){ boardEl3.innerHTML = ''; if(labelEl) labelEl.textContent = 'Preparing games …'; if(scoreEl) scoreEl.style.display='none'; return; }
   const whiteName = live.aIsWhite ? live.botA.name : live.botB.name;
   const blackName = live.aIsWhite ? live.botB.name : live.botA.name;
   const whiteRating = Math.round(getRating(live.aIsWhite?live.botA.id:live.botB.id, live.variant));
   const blackRating = Math.round(getRating(live.aIsWhite?live.botB.id:live.botA.id, live.variant));
-  if(labelEl) labelEl.textContent = whiteName+' ('+whiteRating+', Weiß) vs '+blackName+' ('+blackRating+', Schwarz) · '+live.tc.label;
+  if(labelEl) labelEl.textContent = whiteName+' ('+whiteRating+', White) vs '+blackName+' ('+blackRating+', Black) · '+live.tc.label;
   if(scoreEl){ scoreEl.style.display='flex'; scoreEl.innerHTML = matchScoreHtml(live.botA.id, live.botB.id, live.botA.name, live.botB.name); }
   if(clockTopE && clockBottomE){
     if(live.times.w === null){ clockTopE.textContent='∞'; clockBottomE.textContent='∞'; }
@@ -2712,7 +2757,7 @@ startBotTvEngine();
    ============================================================ */
 let leaderboardVariant = 'blitz';
 document.getElementById('resetEloBtn').addEventListener('click', () => {
-  if(!confirm('Wirklich alle Elo-Werte (du + alle Bots, alle Varianten) auf 1500 zurücksetzen?')) return;
+  if(!confirm('Really reset all ratings (you + all bots, all variants) to 1500?')) return;
   ratingsStore = { human: defaultVariantRatings(1500), bots: {} };
   saveRatingsStore();
   renderLeaderboard();
@@ -2727,7 +2772,7 @@ function renderLeaderboard(){
     btn.addEventListener('click', () => { leaderboardVariant = v; renderLeaderboard(); });
     tabs.appendChild(btn);
   });
-  const rows = [{ id:'human', name:'Du (anonym)', isHuman:true }].concat(allBots().map(b=>({id:b.id,name:b.name,isHuman:false})))
+  const rows = [{ id:'human', name:'You (anonymous)', isHuman:true }].concat(allBots().map(b=>({id:b.id,name:b.name,isHuman:false})))
     .map(r => ({ ...r, rating: Math.round(getRating(r.id, leaderboardVariant)) }))
     .sort((a,b) => b.rating - a.rating);
   const body = document.getElementById('leaderboardBody');
