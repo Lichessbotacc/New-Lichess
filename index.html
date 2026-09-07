@@ -1524,17 +1524,12 @@ function minimax(g, depth, alpha, beta, maximizing){
   }
 }
 
-/* ---- Difficulty tuning (rebalanced): the previous tables let level 1-3
-   "blunder into a random move" only occasionally while otherwise playing
-   a clean depth-1..3 search, which is much too strong for what should be
-   a genuine beginner bot. Blunder chances and evaluation noise are now
-   much higher at low levels, and — see pickMoveForLevelAsync below — real
-   Stockfish is skipped entirely below level 5, since even Stockfish's
-   weakest legal skill setting is still far stronger than an intended
-   "casual beginner" bot. */
+/* ---- Difficulty tuning (original values, unchanged since first version):
+   depth/blunder-chance/noise per level, used both by the JS fallback and
+   to gate/blend with real Stockfish in pickMoveForLevelAsync below. */
 const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:1, 4:1, 5:2, 6:2, 7:3, 8:3};
-const BLUNDER_BY_LEVEL = {1:.88, 2:.72, 3:.55, 4:.38, 5:.20, 6:.09, 7:.03, 8:0};
-const NOISE_BY_LEVEL    = {1:450, 2:340, 3:240, 4:160, 5:90, 6:45, 7:18, 8:4};
+const BLUNDER_BY_LEVEL = {1:.65, 2:.50, 3:.35, 4:.22, 5:.12, 6:.05, 7:.02, 8:0};
+const NOISE_BY_LEVEL    = {1:260, 2:190, 3:130, 4:85, 5:45, 6:20, 7:8, 8:0};
 
 function pickMoveForLevel(g, level, bot){
   const moves = g.moves({verbose:true});
@@ -1718,23 +1713,14 @@ async function stockfishMove(g, level){
   }
 }
 /* Central move-picker used everywhere (single-player, tournaments, Live TV).
-   Below level 5 we never touch Stockfish at all — even skill 0 is far too
-   strong for a "beginner" bot — and rely purely on the shallow/noisy/
-   blunder-prone fallback above. From level 5 up, a blunder-chance roll
-   still happens first (so time pressure etc. can still make a "good"
-   bot occasionally slip), then real Stockfish provides the move. */
+   Restored to the original behaviour: real Stockfish is used for every
+   level 1-8 (weighted by SF_LEVEL_SKILL/DEPTH/MOVETIME above), falling
+   back to the JS engine (pickMoveForLevel, with its own blunder/noise
+   table) only if Stockfish didn't respond in time or isn't available. */
 async function pickMoveForLevelAsync(g, level, bot){
   if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
     const forced = pickMoveForLevel(g, level, bot);
     if(forced) return forced;
-  }
-  const blunderChance = (BLUNDER_BY_LEVEL[level] || 0) * (bot && bot.blunderMult || 1);
-  if(Math.random() < Math.min(0.95, blunderChance)){
-    const moves = g.moves({verbose:true});
-    if(moves.length) return moves[Math.floor(Math.random()*moves.length)];
-  }
-  if(level <= 4){
-    return pickMoveForLevel(g, level, bot);
   }
   const sf = await stockfishMove(g, level);
   return sf || pickMoveForLevel(g, level, bot);
