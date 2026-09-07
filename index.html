@@ -203,10 +203,15 @@ window.Chess = Chess;
   .swatch.active{border-color:var(--green);}
   .swatch i{position:absolute;width:50%;height:100%;top:0;}
   .swatch i:first-child{left:0;} .swatch i:last-child{left:50%;}
+
+  /* ---- head-to-head match score chip ---- */
+  .matchscore{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;margin:4px 0;}
+  .matchscore b{color:var(--text-bright);}
+  .rating-chip{font-size:11px;color:var(--text2);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:1px 7px;margin-left:6px;}
+  .streak-fire{color:#ff7a00;font-weight:800;}
 </style>
 </head>
 <body>
-
 <div class="topnav">
   <div class="brand" data-view="home"><span>♞</span><span>Kordava Chess</span></div>
   <div class="navlinks">
@@ -254,6 +259,7 @@ window.Chess = Chess;
 
   <div class="layout">
     <div class="board-col">
+      <div class="matchscore" id="matchScoreBar" style="display:none"></div>
       <div class="player-bar">
         <div>
           <div class="name" id="topName">Computer</div>
@@ -319,6 +325,7 @@ window.Chess = Chess;
       </div>
       <div class="panel">
         <h3>Move list</h3>
+        <div id="openingNameLabel" style="font-size:12px;color:var(--text2);margin-bottom:6px;min-height:16px"></div>
         <div id="moves" class="moves"></div>
         <div class="btnrow" style="margin-top:8px">
           <button id="startBtn">|◀</button><button id="prevBtn">◀</button>
@@ -465,10 +472,15 @@ window.Chess = Chess;
     <div class="board-col" id="spectateCol" style="display:none">
       <div class="panel" style="width:min(88vw,340px)">
         <h3>Zuschauen</h3>
-        <div id="spectateLabel" style="font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:8px;text-align:center"></div>
+        <div id="spectateLabel" style="font-size:13px;font-weight:700;color:var(--text-bright);margin-bottom:4px;text-align:center"></div>
+        <div id="spectateMatchScore" class="matchscore" style="display:none;justify-content:center"></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <div class="clock" id="spectateClockTop" style="min-width:60px;font-size:14px;padding:3px 8px">-</div>
+          <div class="clock" id="spectateClockBottom" style="min-width:60px;font-size:14px;padding:3px 8px">-</div>
+        </div>
         <div class="boardgrid" id="spectateBoard" style="width:min(88vw,300px);height:min(88vw,300px);margin:0 auto"></div>
         <div class="btnrow" style="margin-top:10px;justify-content:center" id="spectatePicker"></div>
-        <p style="margin-top:8px;font-size:11px;color:var(--text2)">Zeigt eine laufende Bot-gegen-Bot-Partie dieser Arena live, Zug für Zug. Da die Seite ohne Server läuft, lassen sich keine echten fremden Spieler beobachten — dies ist die Live-Ansicht deiner eigenen Arena-Partien im Hintergrund.</p>
+        <p style="margin-top:8px;font-size:11px;color:var(--text2)">Zeigt eine laufende Bot-gegen-Bot-Partie dieser Arena live, Zug für Zug, mit echter Uhr für beide Bots. Da die Seite ohne Server läuft, lassen sich keine echten fremden Spieler beobachten — dies ist die Live-Ansicht deiner eigenen Arena-Partien im Hintergrund.</p>
       </div>
     </div>
   </div>
@@ -521,6 +533,7 @@ window.Chess = Chess;
       </div>
       <div class="panel">
         <h3>Move list</h3>
+        <div id="analysisOpeningLabel" style="font-size:12px;color:var(--text2);margin-bottom:6px;min-height:16px"></div>
         <div id="analysisMoves" class="moves"></div>
         <div class="btnrow" style="margin-top:8px">
           <button id="analysisStartBtn">|◀</button><button id="analysisPrevBtn">◀</button>
@@ -579,10 +592,15 @@ window.Chess = Chess;
 
 <!-- ================= LIVE TV (24/7 bot vs bot, real Stockfish) ================= -->
 <section class="view" id="view-watch">
-  <div class="hero"><h1>Live TV</h1><p>Bots spielen rund um die Uhr zufällig gegeneinander — echtes Stockfish, zufällige Zeitkontrolle und zufällige Bedenkzeit pro Zug. Sobald eine Partie endet, startet sofort die nächste.</p></div>
+  <div class="hero"><h1>Live TV</h1><p>Bots spielen rund um die Uhr zufällig gegeneinander — echtes Stockfish, zufällige Zeitkontrolle und eine echte Uhr pro Partie. Sobald eine Partie endet, startet sofort die nächste.</p></div>
   <div class="layout">
     <div class="board-col">
-      <div id="tvLabel" style="font-weight:700;color:var(--text-bright);margin-bottom:8px;text-align:center;min-height:20px"></div>
+      <div id="tvLabel" style="font-weight:700;color:var(--text-bright);margin-bottom:4px;text-align:center;min-height:20px"></div>
+      <div id="tvMatchScore" class="matchscore" style="display:none;justify-content:center"></div>
+      <div style="display:flex;justify-content:space-between;width:min(88vw,480px)">
+        <div class="clock" id="tvClockTop" style="min-width:70px">-</div>
+        <div class="clock" id="tvClockBottom" style="min-width:70px">-</div>
+      </div>
       <div class="boardgrid" id="tvBoard" style="width:min(88vw,480px);height:min(88vw,480px)"></div>
       <div id="tvEngineStatus" data-sf-status style="font-size:11.5px;color:var(--text2);margin-top:8px;text-align:center"></div>
     </div>
@@ -616,11 +634,6 @@ window.Chess = Chess;
    run entirely client-side (chess.js for rules, no backend).
    ============================================================ */
 
-/* ---- Belt-and-braces double-tap zoom / select / copy suppression ----
-   The CSS (touch-action, user-select) handles almost everything, but a
-   couple of engines still need an explicit event-level block: fast
-   double-taps that Safari/iOS interprets as a zoom gesture, and the
-   two-finger pinch gesture. */
 document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
 document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false });
 let __lastTouchEnd = 0;
@@ -632,14 +645,6 @@ document.addEventListener('touchend', e => {
 
 const PIECE_VALUE = { p:100, n:320, b:330, r:500, q:900, k:0 };
 
-/* Original, simplified Staunton-style piece silhouettes (own vector artwork,
-   not traced from any existing piece set) drawn as inline SVG so they scale
-   crisply at any board size — similar clean, flat look to modern chess sites. */
-/* Classic Staunton-style piece silhouettes (own vector artwork), redrawn to
-   closely match the familiar look/proportions of the well-known "cburnett"
-   set (the default piece style on lichess): round pawn head on a slim neck,
-   3-merlon rook, slit-eyed bishop mitre with a ball finial, a horse-head
-   knight in left-facing profile, and crown/cross finials on queen/king. */
 const PIECE_PATHS = {
   p: '<path d="M22.5 9.5a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8z"/>'
    + '<path d="M20.3 18.9c-1 3.4-3.4 5.2-3.4 10.4 0 1.6.3 3 .8 4.2h10.6c.5-1.2.8-2.6.8-4.2 0-5.2-2.4-7-3.4-10.4z"/>'
@@ -682,9 +687,6 @@ function pieceSVG(type, color){
 
 function squareId(file, rank){ return 'abcdefgh'[file] + (rank+1); }
 
-/* Generic board painter used by all boards (play/puzzle/analysis).
-   Interactivity (click handlers) is attached separately per view.
-   premoveInfo (optional, play view only): { selSquare, targets, from, to } */
 function paintBoard(containerEl, chessInstance, orientation, selectedSquare, legalTargets, lastMove, premoveInfo){
   containerEl.innerHTML = '';
   const flip = orientation === 'b';
@@ -736,12 +738,6 @@ function findKingSquare(g, color){
   return null;
 }
 
-/* Generic tap + drag-and-drop interaction for any board. tapHandler(sqName)
-   is the existing click logic (select/move) — a drag is simulated as a tap
-   on the source square followed by a tap on the drop square, so all move
-   validation stays in one place. touch-action:none on .boardgrid (CSS)
-   stops the page from scrolling while dragging inside the board; outside
-   the board normal scrolling is untouched. */
 function makeBoardInteractive(containerEl, tapHandler){
   const THRESHOLD = 6;
   let startSq = null, startX = 0, startY = 0, dragging = false, ghostEl = null;
@@ -802,20 +798,13 @@ function makeBoardInteractive(containerEl, tapHandler){
 
 /* ============================================================
    PERSISTENT ANONYMOUS ACCOUNT: VARIANT RATINGS + CUSTOM BOTS
-   Everything lives in localStorage so it survives reloads without
-   any sign-in, similar to how a guest account keeps a rating.
-   Ratings are tracked per speed variant (like lichess): every
-   entity (you AND every bot) has its own Elo per variant, and every
-   real game played (normal play, or a tournament game) updates the
-   rating of BOTH sides for whichever variant that time control maps to.
+   + HEAD-TO-HEAD MATCH SCORES (new)
    ============================================================ */
 const VARIANTS = ['ultrabullet','bullet','blitz','rapid','classical'];
 const VARIANT_LABEL = {ultrabullet:'UltraBullet', bullet:'Bullet', blitz:'Blitz', rapid:'Rapid', classical:'Classical'};
 
-/* Same bucket logic lichess uses: estimate total game seconds as
-   minutes*60 + 40*increment, then bucket it. */
 function variantForTC(tcMin, tcInc){
-  if(tcMin === 0 && tcInc === 0) return 'blitz'; // untimed games count as casual blitz-ish for rating purposes
+  if(tcMin === 0 && tcInc === 0) return 'blitz';
   const est = tcMin*60 + 40*tcInc;
   if(est < 30) return 'ultrabullet';
   if(est < 180) return 'bullet';
@@ -824,20 +813,11 @@ function variantForTC(tcMin, tcInc){
   return 'classical';
 }
 
-const LS_RATINGS = 'kordava_ratings_v2';   // { human: {variant:rating}, bots: { botId: {variant:rating} } }
+const LS_RATINGS = 'kordava_ratings_v2';
 const LS_BOTS = 'kordava_custom_bots_v1';
 const LS_STATS = 'kordava_stats_v1';
+const LS_MATCHSCORE = 'kordava_matchscore_v1';
 
-/* Safe localStorage wrapper. In some environments (sandboxed preview
-   iframes, strict privacy modes, certain file:// contexts) localStorage
-   is present but throws on every access instead of just being unavailable.
-   Without this guard, the FIRST bot-vs-bot game to finish anywhere in the
-   app (Live TV or a Tournament) would throw an uncaught exception inside
-   applyEloForGame() -> saveRatingsStore() and permanently freeze that
-   game/tournament — the bots involved stay marked "busy" forever and no
-   new game ever replaces it, which is exactly what broke Tournaments and
-   Live TV. We now fall back to an in-memory store so the app always keeps
-   working for the current session even if nothing can be persisted. */
 let __lsBroken = false;
 const __memStore = {};
 function safeGet(key){
@@ -845,7 +825,7 @@ function safeGet(key){
   catch(e){ __lsBroken = true; return Object.prototype.hasOwnProperty.call(__memStore,key) ? __memStore[key] : null; }
 }
 function safeSet(key, value){
-  __memStore[key] = value; // always keep an in-memory copy so the session stays consistent
+  __memStore[key] = value;
   if(__lsBroken) return;
   try { localStorage.setItem(key, value); }
   catch(e){ __lsBroken = true; }
@@ -863,10 +843,6 @@ function loadRatingsStore(){
 }
 let ratingsStore = loadRatingsStore();
 function saveRatingsStore(){ safeSet(LS_RATINGS, JSON.stringify(ratingsStore)); renderEloBadge(); refreshRatingDependentUI(); }
-/* Keeps every place that prints a bot's rating in sync with reality —
-   without this, the bot picker / bot cards kept showing the rating from
-   the moment the page loaded (or the bot was created) instead of the
-   real, current Elo once games had actually been played. */
 function refreshRatingDependentUI(){
   if(typeof renderBotSelect === 'function') renderBotSelect();
   const botsView = document.getElementById('view-bots');
@@ -886,8 +862,6 @@ function setRating(entityId, variant, value){
   if(entityId === 'human') ratingsStore.human[variant] = value;
   else { if(!ratingsStore.bots[entityId]) ratingsStore.bots[entityId] = defaultVariantRatings(value); ratingsStore.bots[entityId][variant] = value; }
 }
-/* Updates BOTH sides of a real game at once — this is what makes bots
-   actually gain/lose Elo too, exactly like a human opponent would. */
 function applyEloForGame(idA, idB, variant, scoreA){
   const K = 32;
   const rA = getRating(idA, variant), rB = getRating(idB, variant);
@@ -898,15 +872,61 @@ function applyEloForGame(idA, idB, variant, scoreA){
   saveRatingsStore();
 }
 
+/* ---- NEW: persistent head-to-head match score between ANY two entities
+   (human or bot), tracked independently of Elo, and surviving reloads.
+   Stored once per unordered pair under a lexicographically sorted key so
+   "human vs bot3" and "bot3 vs human" always resolve to the same record. */
+function loadMatchStore(){
+  try { return JSON.parse(safeGet(LS_MATCHSCORE)) || {}; } catch(e){ return {}; }
+}
+let matchStore = loadMatchStore();
+function saveMatchStore(){ safeSet(LS_MATCHSCORE, JSON.stringify(matchStore)); }
+function matchStoreKey(idA, idB){ return idA < idB ? idA+'|'+idB : idB+'|'+idA; }
+function getMatchRecord(idA, idB){
+  const key = matchStoreKey(idA, idB);
+  const [x,y] = idA < idB ? [idA,idB] : [idB,idA];
+  if(!matchStore[key]) matchStore[key] = { x, y, xWins:0, yWins:0, draws:0 };
+  return matchStore[key];
+}
+function recordMatchResult(idA, idB, scoreA){
+  const rec = getMatchRecord(idA, idB);
+  const aIsX = (rec.x === idA);
+  if(scoreA === 1){ if(aIsX) rec.xWins++; else rec.yWins++; }
+  else if(scoreA === 0){ if(aIsX) rec.yWins++; else rec.xWins++; }
+  else { rec.draws++; }
+  saveMatchStore();
+}
+function matchScoreFor(idA, idB){
+  const rec = getMatchRecord(idA, idB);
+  const aIsX = (rec.x === idA);
+  return { aWins: aIsX ? rec.xWins : rec.yWins, bWins: aIsX ? rec.yWins : rec.xWins, draws: rec.draws };
+}
+function matchScoreHtml(idA, idB, nameA, nameB){
+  const s = matchScoreFor(idA, idB);
+  let html = nameA + ' <b>' + s.aWins + '</b>&nbsp;–&nbsp;<b>' + s.bWins + '</b> ' + nameB;
+  if(s.draws) html += ' <span style="opacity:.75">(' + s.draws + ' Remis)</span>';
+  return html;
+}
+
 let myStats = loadStats();
 function loadStats(){
   try { return JSON.parse(safeGet(LS_STATS)) || {w:0,l:0,d:0}; } catch(e){ return {w:0,l:0,d:0}; }
 }
 function saveStats(s){ safeSet(LS_STATS, JSON.stringify(s)); }
 
+/* Tracks whichever time-control variant the user last touched anywhere in
+   the UI (New Game panel or Tournament panel), so bot cards/selects show a
+   rating that matches what you're about to play instead of always Blitz. */
+let selectedVariantForUI = 'blitz';
+function setSelectedVariant(v){
+  selectedVariantForUI = v;
+  renderEloBadge();
+  refreshRatingDependentUI();
+}
+
 function renderEloBadge(){
   const el = document.getElementById('eloBadge');
-  el.textContent = 'Blitz ' + Math.round(ratingsStore.human.blitz);
+  el.textContent = VARIANT_LABEL[selectedVariantForUI] + ' ' + Math.round(ratingsStore.human[selectedVariantForUI]);
 }
 renderEloBadge();
 
@@ -962,7 +982,7 @@ function renderBotGrid(){
     const initials = bot.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const styleLabel = {balanced:'Ausgewogen',aggressive:'Aggressiv',positional:'Positionell',defensive:'Defensiv'}[bot.style||'balanced'];
     card.innerHTML = '<div class="bot-head"><div class="bot-avatar">'+initials+'</div>'
-      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · Blitz '+Math.round(getRating(bot.id,'blitz'))+(bot.custom?' · eigener Bot':'')+'</div>'
+      + '<div><div class="bot-name">'+bot.name+'</div><div class="bot-meta">Level '+bot.level+' · '+VARIANT_LABEL[selectedVariantForUI]+' '+Math.round(getRating(bot.id,selectedVariantForUI))+(bot.custom?' · eigener Bot':'')+'</div>'
       + '<div class="bot-meta">'+styleLabel+(bot.opening&&bot.opening!=='random'?' · Eröffnung: '+bot.opening.toUpperCase():'')+'</div></div></div>';
     const row = document.createElement('div'); row.className = 'btnrow';
     const playBtn = document.createElement('button'); playBtn.className='primary'; playBtn.textContent='Spielen';
@@ -984,7 +1004,7 @@ function renderBotSelect(){
   allBots().forEach(bot => {
     const opt = document.createElement('option');
     opt.value = bot.id;
-    opt.textContent = bot.name + ' (Lvl ' + bot.level + ', Blitz ' + Math.round(getRating(bot.id,'blitz')) + ')';
+    opt.textContent = bot.name + ' (Lvl ' + bot.level + ', ' + VARIANT_LABEL[selectedVariantForUI] + ' ' + Math.round(getRating(bot.id,selectedVariantForUI)) + ')';
     sel.appendChild(opt);
   });
   if(prev && [...sel.options].some(o=>o.value===prev)) sel.value = prev;
@@ -1068,7 +1088,6 @@ if(swatchBox){
 }
 applySettings();
 
-/* ---- Simple synthesized sound effects (no external audio files) ---- */
 let audioCtx = null;
 function beep(freq, durationMs, type){
   if(!settings.sound) return;
@@ -1080,13 +1099,13 @@ function beep(freq, durationMs, type){
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs/1000);
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(); osc.stop(audioCtx.currentTime + durationMs/1000);
-  } catch(e){ /* audio unavailable, fail silently */ }
+  } catch(e){ }
 }
 function playMoveSound(move){
   if(!move) return;
-  if(move.flags && move.flags.includes('c')) beep(220, 90, 'square');       // capture
-  else if(move.flags && (move.flags.includes('k')||move.flags.includes('q'))) beep(330, 110, 'triangle'); // castle
-  else beep(440, 70, 'sine');                                                // quiet move
+  if(move.flags && move.flags.includes('c')) beep(220, 90, 'square');
+  else if(move.flags && (move.flags.includes('k')||move.flags.includes('q'))) beep(330, 110, 'triangle');
+  else beep(440, 70, 'sine');
   setTimeout(() => {
     if(game.in_check && game.in_check()) beep(660, 150, 'sawtooth');
   }, 60);
@@ -1097,8 +1116,7 @@ function playGameEndSound(won){
   else beep(330, 160, 'triangle');
 }
 
-/* ---- Promotion piece picker (overlay), replaces auto-queen for the human ---- */
-let pendingPromotion = null; // { from, to }
+let pendingPromotion = null;
 function askPromotionChoice(from, to){
   pendingPromotion = { from, to };
   const color = game.get(from).color;
@@ -1120,14 +1138,13 @@ function askPromotionChoice(from, to){
   container.appendChild(overlay);
 }
 
-/* ---- Captured pieces + material difference under each player's name ---- */
 function renderCapturedPieces(){
   const topEl = document.getElementById('capturedTop'), bottomEl = document.getElementById('capturedBottom');
   if(!topEl || !bottomEl) return;
   const startCounts = { p:8, n:2, b:2, r:2, q:1 };
   const onBoard = { w:{p:0,n:0,b:0,r:0,q:0}, b:{p:0,n:0,b:0,r:0,q:0} };
   for(const row of game.board()) for(const cell of row){ if(cell && cell.type !== 'k') onBoard[cell.color][cell.type]++; }
-  const capturedByWhite = {}, capturedByBlack = {}; // pieces White has captured (black pieces missing), and vice versa
+  const capturedByWhite = {}, capturedByBlack = {};
   let material = { w:0, b:0 };
   ['p','n','b','r','q'].forEach(type => {
     const blackMissing = startCounts[type] - onBoard.b[type];
@@ -1145,7 +1162,6 @@ function renderCapturedPieces(){
     return html;
   }
   const whiteIsBottom = boardOrientation === 'w';
-  // Bottom bar shows what the bottom player has captured (i.e. opponent's missing pieces).
   if(whiteIsBottom){
     bottomEl.innerHTML = rowHtml(capturedByWhite, diff > 0 ? diff : 0);
     topEl.innerHTML = rowHtml(capturedByBlack, diff < 0 ? -diff : 0);
@@ -1155,19 +1171,16 @@ function renderCapturedPieces(){
   }
 }
 
-/* ---- Draw offers vs bots: the bot accepts if it isn't clearly better off ---- */
 document.getElementById('drawBtn') && document.getElementById('drawBtn').addEventListener('click', () => {
   if(gameOver || !currentBot) return;
-  const score = evaluateBoard(game); // + favors white
+  const score = evaluateBoard(game);
   const botColor = humanColor === 'w' ? 'b' : 'w';
   const botAdvantage = botColor === 'w' ? score : -score;
-  // Weaker/losing bots accept more readily; strong bots with a real edge decline.
   const acceptChance = botAdvantage > 150 ? 0.05 : botAdvantage > 30 ? 0.35 : 0.85;
   if(Math.random() < acceptChance) endGame('Draw by agreement', '1/2-1/2');
   else { statusEl.textContent = currentBot.name + ' lehnt das Remis ab.'; setTimeout(() => { if(!gameOver) checkGameEnd(); }, 1600); }
 });
 
-/* ---- Game-over banner with Rematch ---- */
 function renderGameOverBanner(message, result){
   const el = document.getElementById('gameOverBanner');
   if(!el) return;
@@ -1178,7 +1191,7 @@ function renderGameOverBanner(message, result){
   const rematchBtn = document.createElement('button'); rematchBtn.className = 'primary'; rematchBtn.textContent = 'Revanche';
   rematchBtn.addEventListener('click', () => {
     const colorSel = document.getElementById('colorSelect');
-    colorSel.value = humanColor === 'w' ? 'b' : 'w'; // swap colors for the rematch, like lichess
+    colorSel.value = humanColor === 'w' ? 'b' : 'w';
     startNewGame(undefined, currentBot ? currentBot.id : undefined);
   });
   const newOppBtn = document.createElement('button'); newOppBtn.textContent = 'Neuer Gegner';
@@ -1188,14 +1201,53 @@ function renderGameOverBanner(message, result){
   el.appendChild(box);
 }
 
+/* ---- Mini opening-name book: a small, hand-picked ECO-lite lookup so the
+   Play and Analysis boards can show a human-friendly opening name once the
+   position matches a known line — a fun little touch, not a full ECO
+   database, matched purely on the SAN move prefix. ============= */
+const OPENING_BOOK = [
+  { name:'Italian Game', sans:['e4','e5','Nf3','Nc6','Bc4'] },
+  { name:'Ruy Lopez (Spanish)', sans:['e4','e5','Nf3','Nc6','Bb5'] },
+  { name:'Scotch Game', sans:['e4','e5','Nf3','Nc6','d4'] },
+  { name:'Petrov\'s Defence', sans:['e4','e5','Nf3','Nf6'] },
+  { name:'Philidor Defence', sans:['e4','e5','Nf3','d6'] },
+  { name:'King\'s Gambit', sans:['e4','e5','f4'] },
+  { name:'Vienna Game', sans:['e4','e5','Nc3'] },
+  { name:'Sicilian Defence', sans:['e4','c5'] },
+  { name:'Sicilian, Najdorf', sans:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','a6'] },
+  { name:'French Defence', sans:['e4','e6'] },
+  { name:'Caro-Kann Defence', sans:['e4','c6'] },
+  { name:'Pirc Defence', sans:['e4','d6'] },
+  { name:'Alekhine\'s Defence', sans:['e4','Nf6'] },
+  { name:'Scandinavian Defence', sans:['e4','d5'] },
+  { name:'Queen\'s Gambit', sans:['d4','d5','c4'] },
+  { name:'Queen\'s Gambit Declined', sans:['d4','d5','c4','e6'] },
+  { name:'Queen\'s Gambit Accepted', sans:['d4','d5','c4','dxc4'] },
+  { name:'Slav Defence', sans:['d4','d5','c4','c6'] },
+  { name:'King\'s Indian Defence', sans:['d4','Nf6','c4','g6'] },
+  { name:'Nimzo-Indian Defence', sans:['d4','Nf6','c4','e6','Nc3','Bb4'] },
+  { name:'Grünfeld Defence', sans:['d4','Nf6','c4','g6','Nc3','d5'] },
+  { name:'Queen\'s Indian Defence', sans:['d4','Nf6','c4','e6','Nf3','b6'] },
+  { name:'Dutch Defence', sans:['d4','f5'] },
+  { name:'London System', sans:['d4','d5','Bf4'] },
+  { name:'Réti Opening', sans:['Nf3','d5','c4'] },
+  { name:'English Opening', sans:['c4'] },
+  { name:'Bird\'s Opening', sans:['f4'] }
+];
+function detectOpeningName(sanHistory){
+  let best = null;
+  for(const entry of OPENING_BOOK){
+    if(entry.sans.length > sanHistory.length) continue;
+    let ok = true;
+    for(let i=0;i<entry.sans.length;i++){ if(sanHistory[i] !== entry.sans[i]){ ok = false; break; } }
+    if(ok && (!best || entry.sans.length > best.sans.length)) best = entry;
+  }
+  return best ? best.name : null;
+}
+
 /* ============================================================
    PLAY VS COMPUTER
    ============================================================ */
-// Declared here (not down in the Tournaments module) because startNewGame()
-// below reads `tournament` for the berserk button — with `let`, referencing
-// a binding before its declaration line has run throws a ReferenceError and
-// silently kills all script execution after it, which is what was breaking
-// tournaments, Live TV and everything else at once.
 let tournament = null;
 let arenaEngineTimer = null;
 let spectateGameKey = null;
@@ -1209,23 +1261,20 @@ let humanColor = 'w';
 let viewPly = 0;
 let history = [];
 let clockTimer = null;
-let times = { w: 300, b: 300 }; // seconds "banked" for the side NOT currently burning time live
-let turnStartTs = null;         // Date.now() ms when the side to move's clock started running
+let times = { w: 300, b: 300 };
+let turnStartTs = null;
 let increment = 0;
 let currentVariant = 'blitz';
 let gameOver = false;
-let currentBot = null; // {id,name,level,rating,custom}
+let currentBot = null;
 let startFen = null;
 let thinkingTimer = null;
 
-// Premove: a queued move the human made while it wasn't their turn yet.
 let premove = null;
 let premoveSelSquare = null;
 let premoveTargets = [];
 
-// Set by the tournament module before starting a game vs a bot, so the
-// result can be recorded back into the tournament when the game ends.
-let activeTournamentMatch = null; // { matchIndex }
+let activeTournamentMatch = null;
 
 const boardEl = document.getElementById('playBoard');
 const statusEl = document.getElementById('status');
@@ -1249,6 +1298,17 @@ function renderPlayBoard(){
   makeBoardInteractive(boardEl, onSquareClick);
   boardEl.oncontextmenu = (e) => { e.preventDefault(); clearPremove(); };
   renderCapturedPieces();
+  renderMatchScoreBar();
+}
+
+function renderMatchScoreBar(){
+  const bar = document.getElementById('matchScoreBar');
+  if(!bar) return;
+  if(!currentBot){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = matchScoreHtml('human', currentBot.id, 'Du', currentBot.name)
+    + '<span class="rating-chip">Du ' + Math.round(getRating('human', currentVariant)) + '</span>'
+    + '<span class="rating-chip">' + currentBot.name + ' ' + Math.round(getRating(currentBot.id, currentVariant)) + '</span>';
 }
 
 function clearPremove(){
@@ -1320,7 +1380,6 @@ function needsPromotion(from, to){
 }
 function makeMove(from, to, promotion, isPremove){
   if(needsPromotion(from, to) && !promotion){
-    // Human, non-premove promotions get a real piece picker instead of auto-queen.
     if(!isPremove && game.turn() === humanColor && humanColor === game.get(from).color){
       askPromotionChoice(from, to);
       return 'pending';
@@ -1335,7 +1394,7 @@ function makeMove(from, to, promotion, isPremove){
   bankClockAfterMove(move.color, isPremove);
   playMoveSound(move);
   const berserkBtnEl = document.getElementById('berserkBtn');
-  if(berserkBtnEl) berserkBtnEl.style.display = 'none'; // berserk only decidable before move 1
+  if(berserkBtnEl) berserkBtnEl.style.display = 'none';
   syncPanels(); renderPlayBoard(); checkGameEnd();
   if(!gameOver && game.turn() !== humanColor){
     scheduleComputerMove();
@@ -1348,17 +1407,8 @@ function makeMove(from, to, promotion, isPremove){
   return true;
 }
 
-/* Real-time chess clock: instead of a naive "-1 every 1000ms" countdown
-   (which drifts and can dock a player a whole second for something that
-   took 40ms, e.g. an instantly-executed premove), we track wall-clock
-   timestamps. times.w/times.b hold the seconds "banked" as of the last
-   time that side's turn *started*; while it's actually their turn, the
-   live remaining time is computed as banked - elapsed(now - turnStartTs).
-   A move "banks" the elapsed time into the mover's own bucket. Premoves
-   (isPremove=true) skip that deduction entirely — they're treated as
-   instantaneous, exactly like a premove firing on lichess. */
 function bankClockAfterMove(moverColor, isPremove){
-  if(times.w === null){ return; } // untimed game
+  if(times.w === null){ return; }
   if(turnStartTs !== null && !isPremove){
     const elapsed = (Date.now() - turnStartTs) / 1000;
     times[moverColor] = Math.max(0, times[moverColor] - elapsed);
@@ -1397,7 +1447,7 @@ function fmtTime(s){
   if(s === null) return '∞';
   s = Math.max(0, s);
   const m = Math.floor(s/60), sec = Math.floor(s%60);
-  if(m === 0 && s < 10) return sec + '.' + Math.floor((s-sec)*10); // tenths under 10s, like lichess
+  if(m === 0 && s < 10) return sec + '.' + Math.floor((s-sec)*10);
   return m+':'+String(sec).padStart(2,'0');
 }
 function updateClockDisplay(){
@@ -1420,7 +1470,11 @@ function checkGameEnd(){
   else if(game.insufficient_material()){ endGame('Draw by insufficient material', '1/2-1/2'); }
   else if(game.in_draw()){ endGame('Draw by the 50-move rule', '1/2-1/2'); }
   else if(game.in_check()){ statusEl.textContent = (game.turn()==='w'?'White':'Black') + ' is in check'; }
-  else { statusEl.textContent = ''; }
+  else {
+    statusEl.textContent = '';
+    const opening = detectOpeningName(history.map(h=>h.san));
+    if(opening) statusEl.textContent = '';
+  }
 }
 function endGame(message, result){
   gameOver = true; stopClock();
@@ -1434,11 +1488,11 @@ function endGame(message, result){
   else if(result === '1/2-1/2') humanScore = 0.5;
   if(humanScore !== null) playGameEndSound(humanScore === 1 ? true : humanScore === 0 ? false : null);
 
-  // Anonymous Elo update (per variant), only for real games vs a bot (not analysis).
-  // This updates BOTH your rating and the bot's rating for this variant.
   if(currentBot && humanScore !== null){
     applyEloForGame('human', currentBot.id, currentVariant, humanScore);
+    recordMatchResult('human', currentBot.id, humanScore);
     statusEl.textContent += '  ·  Neues ' + VARIANT_LABEL[currentVariant] + '-Rating: ' + Math.round(getRating('human', currentVariant));
+    renderMatchScoreBar();
   }
   renderGameOverBanner(message, result);
 
@@ -1447,9 +1501,6 @@ function endGame(message, result){
     recordTournamentUserResult(activeTournamentMatch.matchIndex, humanScore, berserked);
     activeTournamentMatch = null;
     const btn = document.getElementById('berserkBtn'); if(btn) btn.style.display = 'none';
-    // Like lichess: after finishing your tournament game, you land back on
-    // the tournament page (standings / next pairing) instead of staying on
-    // an empty finished board.
     setTimeout(() => { if(tournament) showView('tournaments'); }, 1400);
   }
 }
@@ -1473,42 +1524,22 @@ function minimax(g, depth, alpha, beta, maximizing){
   }
 }
 
-/* Strength per level: search depth + chance of a random "blunder" move
-   instead of the computed best move. Higher level = deeper search,
-   fewer blunders, closer to real chess strength. This is now only the
-   FALLBACK engine — used only if the real Stockfish (below) can't be
-   loaded, e.g. no internet access when the page is opened. */
-/* Search depth for the built-in fallback engine (used whenever real
-   Stockfish can't be loaded — which, per testing, is often). This is
-   capped at 3 plies: measured directly, an *uncapped* depth-5 search from
-   the opening position took ~25 SECONDS for a single move (chess.js move
-   generation has no move-ordering/pruning tuning, so search cost explodes
-   with depth) — completely freezing the tab, and multiplying that by
-   several simultaneous bot-vs-bot games made tournaments hang solid for
-   over a minute. Depth 3 (~0.4s worst case) keeps every move fast even
-   with several games running at once; level 7-8 lean on NOISE/BLUNDER
-   being near zero rather than raw search depth to still play solidly. */
+/* ---- Difficulty tuning (rebalanced): the previous tables let level 1-3
+   "blunder into a random move" only occasionally while otherwise playing
+   a clean depth-1..3 search, which is much too strong for what should be
+   a genuine beginner bot. Blunder chances and evaluation noise are now
+   much higher at low levels, and — see pickMoveForLevelAsync below — real
+   Stockfish is skipped entirely below level 5, since even Stockfish's
+   weakest legal skill setting is still far stronger than an intended
+   "casual beginner" bot. */
 const DEPTH_BY_LEVEL   = {1:1, 2:1, 3:1, 4:1, 5:2, 6:2, 7:3, 8:3};
-const BLUNDER_BY_LEVEL = {1:.65, 2:.50, 3:.35, 4:.22, 5:.12, 6:.05, 7:.02, 8:0};
-// Centipawn-ish noise added to every candidate move's score before picking
-// the "best" one — this is what makes low levels genuinely weak (missing
-// good moves, drifting into bad positions) rather than just "sometimes
-// picks a completely random move but otherwise plays perfectly", which is
-// what made the old levels 1–3 feel far stronger than real, low-rated
-// Stockfish levels on lichess.
-const NOISE_BY_LEVEL    = {1:260, 2:190, 3:130, 4:85, 5:45, 6:20, 7:8, 8:0};
+const BLUNDER_BY_LEVEL = {1:.88, 2:.72, 3:.55, 4:.38, 5:.20, 6:.09, 7:.03, 8:0};
+const NOISE_BY_LEVEL    = {1:450, 2:340, 3:240, 4:160, 5:90, 6:45, 7:18, 8:4};
 
-/* Generic move-picker that works on ANY chess.js instance + level — used
-   both for your live games (against `game`) and for engine-vs-engine
-   tournament games that are played out for real, move by move. */
 function pickMoveForLevel(g, level, bot){
   const moves = g.moves({verbose:true});
   if(moves.length === 0) return null;
 
-  // Opening preference: only steers the very first move of the game (as
-  // White) — full opening "books" for every reply are out of scope, but
-  // this alone makes a bot's games visibly recognizable (always opens
-  // 1.e4, always opens 1.d4, ...) instead of every bot playing identically.
   if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
     const openingMove = { e4:'e2e4', d4:'d2d4', nf3:'g1f3', c4:'c2c4' }[bot.opening];
     if(openingMove){
@@ -1540,57 +1571,35 @@ function pickMoveForLevel(g, level, bot){
   }
   return bestMoves[Math.floor(Math.random()*bestMoves.length)];
 }
-/* Small, cheap heuristic nudges (well under the value of a pawn) so each
-   style visibly leans a certain way over a game without overriding sound
-   tactics found by the search above. */
 function styleMoveBonus(m, style){
   let bonus = 0;
   const central = new Set(['d4','d5','e4','e5']);
   const backRank = new Set(['1','8']);
   if(style === 'aggressive'){
-    if(m.flags && m.flags.includes('c')) bonus += 18;      // captures
-    if(m.san && m.san.includes('+')) bonus += 22;           // checks
+    if(m.flags && m.flags.includes('c')) bonus += 18;
+    if(m.san && m.san.includes('+')) bonus += 22;
     if(central.has(m.to)) bonus += 6;
   } else if(style === 'positional'){
-    if(central.has(m.to)) bonus += 16;                      // center control
-    if((m.piece === 'n' || m.piece === 'b') && backRank.has(m.from[1])) bonus += 14; // development
-    if(m.flags && m.flags.includes('k')) bonus += 20;        // castling
+    if(central.has(m.to)) bonus += 16;
+    if((m.piece === 'n' || m.piece === 'b') && backRank.has(m.from[1])) bonus += 14;
+    if(m.flags && m.flags.includes('k')) bonus += 20;
   } else if(style === 'defensive'){
-    if(m.flags && m.flags.includes('k')) bonus += 26;        // castle early
-    if(m.flags && m.flags.includes('c')) bonus -= 6;         // avoid unnecessary trades
+    if(m.flags && m.flags.includes('k')) bonus += 26;
+    if(m.flags && m.flags.includes('c')) bonus -= 6;
     if(central.has(m.to)) bonus += 4;
   }
   return bonus;
 }
 
-/* ============================================================
-   REAL STOCKFISH ENGINE
-   Loaded at runtime from a public CDN (same open-source stockfish.js
-   engine build many chess sites embed) and run inside Web Workers via
-   the standard UCI protocol — this is a genuine Stockfish, not a
-   hand-written approximation. It needs an internet connection the
-   moment the page is opened; if that fails (offline, blocked CDN) every
-   bot move silently falls back to the built-in engine above instead of
-   breaking the game.
-
-   Levels 1–8 are mapped to Stockfish's Skill Level / depth / movetime
-   using the exact same table lichess's own "fishnet" worker code uses
-   for its 1–8 computer levels, so the strength steps match lichess:
-     skill    = [-9, -5, -1,  3,  7, 11, 16, 20]
-     depth    = [ 5,  5,  5,  5,  5,  8, 13, 22]
-     movetime = [50,100,150,200,300,400,500,1000] ms
-   (Lichess itself runs a newer NNUE Stockfish binary server-side for
-   this; a browser build fetched from a CDN can't be byte-identical to
-   that private binary, but it is the same Stockfish engine and the
-   same level formula, not a re-implementation.) */
 const STOCKFISH_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
-const SF_LEVEL_SKILL    = [-9, -5, -1, 3, 7, 11, 16, 20];
-const SF_LEVEL_DEPTH    = [5, 5, 5, 5, 5, 8, 13, 22];
-const SF_LEVEL_MOVETIME = [50, 100, 150, 200, 300, 400, 500, 1000];
+/* Skill/depth/movetime only used for level >=5 now (see pickMoveForLevelAsync) */
+const SF_LEVEL_SKILL    = [0, 0, 2, 4, 7, 11, 16, 20];
+const SF_LEVEL_DEPTH    = [3, 3, 4, 4, 5, 8, 13, 22];
+const SF_LEVEL_MOVETIME = [50,100,150,200,300,400,500,1000];
 const SF_POOL_SIZE = 4;
-const SF_LOAD_TIMEOUT_MS = 4000;   // give up on Stockfish loading after this long
-const SF_MOVE_TIMEOUT_MS = 3000;   // give up on a single move request after this long
-let stockfishAvailable = null; // null = still loading, true/false once known
+const SF_LOAD_TIMEOUT_MS = 4000;
+const SF_MOVE_TIMEOUT_MS = 3000;
+let stockfishAvailable = null;
 let sfPool = [];
 let sfLoadPromise = null;
 const sfStatusEls = () => document.querySelectorAll('[data-sf-status]');
@@ -1638,13 +1647,6 @@ class SFEngine {
   }
 }
 
-/* Loading strategy: we do NOT fetch() the engine script ourselves — cdnjs
-   (and most CDNs) reject cross-origin fetch() reads from a file:// page
-   (Origin: null) with a CORS error, which is exactly what broke this the
-   first time. Instead, each worker's own script just calls importScripts()
-   on the CDN URL: that is a plain script load (same mechanism as a <script
-   src>  tag), not a CORS-checked fetch, so it works from file:// too, as
-   long as there's an internet connection. */
 function createStockfishWorker(){
   const bootstrap = "try { importScripts('" + STOCKFISH_CDN_URL + "'); } catch(e) { postMessage('__load_failed__'); }";
   const blobUrl = URL.createObjectURL(new Blob([bootstrap], { type: 'application/javascript' }));
@@ -1685,7 +1687,7 @@ async function acquireEngineSlot(){
   while(!slot){
     await new Promise(r => setTimeout(r, 50));
     waited += 50;
-    if(!stockfishAvailable || waited > SF_MOVE_TIMEOUT_MS * 2) return null; // never block a game forever
+    if(!stockfishAvailable || waited > SF_MOVE_TIMEOUT_MS * 2) return null;
     slot = sfPool.find(s => !s.busy);
   }
   slot.busy = true;
@@ -1693,10 +1695,6 @@ async function acquireEngineSlot(){
 }
 function releaseEngineSlot(slot){ slot.busy = false; }
 
-/* Returns a verbose chess.js move object for the given level (1-8) using
-   real Stockfish, or null if Stockfish isn't available / didn't answer in
-   time (caller falls back to pickMoveForLevel in that case, so a slow or
-   broken engine never stalls a game). */
 async function stockfishMove(g, level){
   const slot = await acquireEngineSlot();
   if(!slot) return null;
@@ -1718,13 +1716,24 @@ async function stockfishMove(g, level){
     releaseEngineSlot(slot);
   }
 }
+/* Central move-picker used everywhere (single-player, tournaments, Live TV).
+   Below level 5 we never touch Stockfish at all — even skill 0 is far too
+   strong for a "beginner" bot — and rely purely on the shallow/noisy/
+   blunder-prone fallback above. From level 5 up, a blunder-chance roll
+   still happens first (so time pressure etc. can still make a "good"
+   bot occasionally slip), then real Stockfish provides the move. */
 async function pickMoveForLevelAsync(g, level, bot){
-  // Honor the chosen opening move deterministically even when real
-  // Stockfish is available (Stockfish has no concept of "this bot's
-  // favourite first move").
   if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
     const forced = pickMoveForLevel(g, level, bot);
     if(forced) return forced;
+  }
+  const blunderChance = (BLUNDER_BY_LEVEL[level] || 0) * (bot && bot.blunderMult || 1);
+  if(Math.random() < Math.min(0.95, blunderChance)){
+    const moves = g.moves({verbose:true});
+    if(moves.length) return moves[Math.floor(Math.random()*moves.length)];
+  }
+  if(level <= 4){
+    return pickMoveForLevel(g, level, bot);
   }
   const sf = await stockfishMove(g, level);
   return sf || pickMoveForLevel(g, level, bot);
@@ -1735,11 +1744,6 @@ function pickComputerMove(){
   return pickMoveForLevel(game, level, currentBot);
 }
 
-/* Plays a COMPLETE real game between two bot levels move-by-move on a
-   fresh board (used only as a synchronous fallback path — normal
-   bot-vs-bot play now goes through the async, real-Stockfish path in
-   the tournament and Live TV modules below). Returns the score for
-   bot A: 1/0.5/0. */
 function playFullEngineGame(levelA, levelB){
   const g = new Chess();
   const aIsWhite = Math.random() < 0.5;
@@ -1756,33 +1760,23 @@ function playFullEngineGame(levelA, levelB){
   return aIsWhite ? scoreForWhite : (1 - scoreForWhite);
 }
 
-
-/* How long the bot "thinks" before moving: depends on its level (stronger
-   bots ponder longer), its own speed setting, and on how much of its own
-   clock is left (running low on time makes it play fast and instinctively,
-   like a human blitzing out moves on low time). No effect when the clock
-   is off (untimed game). */
 function getThinkDelayMs(){
   const level = currentBot ? currentBot.level : 3;
   const botColor = humanColor === 'w' ? 'b' : 'w';
   const botTime = liveRemaining(botColor);
-  const baseMin = 120 + level*40;      // faster bots barely pause
-  const baseMax = 350 + level*260;     // stronger bots ponder much longer
+  const baseMin = 120 + level*40;
+  const baseMax = 350 + level*260;
   let delay = baseMin + Math.random()*(baseMax-baseMin);
   const speedMult = { slow:1.6, normal:1, fast:0.45 }[currentBot && currentBot.speed] || 1;
   delay *= speedMult;
   if(botTime !== null){
-    if(botTime <= 8) delay = Math.min(delay, 90 + Math.random()*120);        // near flag: blitz it out
-    else if(botTime <= 25) delay *= 0.35;                                     // low on time: hurry up
+    if(botTime <= 8) delay = Math.min(delay, 90 + Math.random()*120);
+    else if(botTime <= 25) delay *= 0.35;
     else if(botTime <= 60) delay *= 0.65;
-    else if(botTime > 240) delay *= 1.15;                                    // plenty of time: take a bit longer
+    else if(botTime > 240) delay *= 1.15;
   }
   return Math.round(Math.min(delay, 2600));
 }
-/* How much more likely the bot is to blunder because its own clock is
-   running low — depends on its timeHandling setting. Bots with "poor" time
-   handling fall apart much more once low on time, like a human panicking;
-   bots with "good" handling barely change their play at all. */
 function timePressureBlunderMult(){
   if(!currentBot) return 1;
   const botColor = humanColor === 'w' ? 'b' : 'w';
@@ -1804,16 +1798,24 @@ function computerMove(){
   const level = currentBot ? currentBot.level : 3;
   const g = game;
   const botWithTimePressure = currentBot ? Object.assign({}, currentBot, { blunderMult: timePressureBlunderMult() }) : currentBot;
-  stockfishMove(g, level).then(sfMove => {
-    if(gameOver || g !== game) return; // game may have changed (undo/new game) while we awaited
-    const m = sfMove || pickMoveForLevel(g, level, botWithTimePressure);
+  pickMoveForLevelAsync(g, level, botWithTimePressure).then(m => {
+    if(gameOver || g !== game) return;
     if(!m) return;
     playComputerMove(m);
   });
 }
 function playComputerMove(m){ makeMove(m.from, m.to, m.promotion); }
 
-function syncPanels(){ renderMoveList(movesEl, history, viewPly, jumpToPly); pgnBox.value = game.pgn(); fenBox.value = game.fen(); }
+function syncPanels(){
+  renderMoveList(movesEl, history, viewPly, jumpToPly);
+  pgnBox.value = game.pgn();
+  fenBox.value = game.fen();
+  const openingEl = document.getElementById('openingNameLabel');
+  if(openingEl){
+    const name = detectOpeningName(history.map(h=>h.san));
+    openingEl.textContent = name ? ('📖 ' + name) : '';
+  }
+}
 
 function renderMoveList(container, hist, currentPly, onJump){
   container.innerHTML = '';
@@ -1868,6 +1870,10 @@ document.querySelectorAll('.tcbtn').forEach(btn => {
     startNewGame();
   });
 });
+document.getElementById('tcSelect').addEventListener('change', (e) => {
+  const [tcMin, tcInc] = e.target.value.split('|').map(Number);
+  setSelectedVariant(variantForTC(tcMin, tcInc));
+});
 
 function startNewGame(fen, botIdOverride){
   stopClock();
@@ -1888,18 +1894,15 @@ function startNewGame(fen, botIdOverride){
   const tcValue = document.getElementById('tcSelect').value;
   const [tcMin, tcInc] = tcValue.split('|').map(Number);
   currentVariant = variantForTC(tcMin, tcInc);
+  setSelectedVariant(currentVariant);
   topSubEl.textContent = 'Level ' + currentBot.level + ' · ' + VARIANT_LABEL[currentVariant] + ' ' + Math.round(getRating(currentBot.id, currentVariant));
   if(tcValue === '0|0'){ times = { w:null, b:null }; increment = 0; }
   else { times = { w: tcMin*60, b: tcMin*60 }; increment = tcInc; }
   const colorChoice = document.getElementById('colorSelect').value;
   humanColor = colorChoice === 'r' ? (Math.random()<0.5?'w':'b') : colorChoice;
   boardOrientation = humanColor;
-  bottomSubEl.textContent = humanColor === 'w' ? 'Weiß' : 'Schwarz';
+  bottomSubEl.textContent = (humanColor === 'w' ? 'Weiß' : 'Schwarz') + ' · ' + VARIANT_LABEL[currentVariant] + ' ' + Math.round(getRating('human', currentVariant));
   syncPanels(); renderPlayBoard();
-  // Lichess behaviour: neither clock ticks until the very first move of the
-  // game has been played (by whichever side moves first) — bankClockAfterMove()
-  // starts the timer for the side to move next once that happens, so here we
-  // only draw the static, frozen starting time.
   updateClockDisplay();
   if(game.turn() !== humanColor) scheduleComputerMove();
 
@@ -2021,25 +2024,14 @@ document.getElementById('puzzleNextBtn').addEventListener('click', () => loadPuz
 
 /* ============================================================
    TOURNAMENTS
-   A round-robin among "Du" (the human) and any selected bots.
-   Bot-vs-bot games are simulated instantly from an Elo expected
-   score (no live board needed for those). Your own games are
-   played for real on the main board, then the result flows back
-   into the standings automatically.
+   Bot-vs-bot games are now played with a REAL, ticking clock derived
+   from the tournament's own time control (tcMin/tcInc) — exactly like a
+   game you'd play yourself — instead of a flat random "thinking delay"
+   with no clock at all. Each bot's own speed/timeHandling settings still
+   shape how it spends that clock (see computeBotThinkDelay/pickMoveForLevelAsync).
+   Running out of time now genuinely loses the game on time, exactly like
+   it would for you.
    ============================================================ */
-/* tournament shape:
-   { name, format:'arena'|'swiss', tcMin, tcInc, variant,
-     participants:[{id,name,isHuman,level}],
-     scores:[Number], streaks:[Number], gamesPlayed:[Number],
-     pairingHistory:Set<'i-j'>, roundsPlayed:Number, maxRounds:Number|null,
-     remainingMs:Number|null (arena only), paused:Bool, lastTickTs:Number,
-     currentRoundMatches:[{aIdx,bIdx,result:null|Number,bye:Bool,live:Object|null}],
-     liveGames:{ [key]: liveGameState }, liveGameSeq:Number, finished:Bool }
-   An arena never resets currentRoundMatches — new pairings are appended as
-   soon as two participants are free, exactly like lichess. Bot-vs-bot games
-   are played out move by move in real time (not resolved instantly) so they
-   can be watched live on the spectator board. */
-
 function renderTournamentBotList(){
   const box = document.getElementById('tournamentBotList');
   box.innerHTML = '';
@@ -2047,7 +2039,7 @@ function renderTournamentBotList(){
     const row = document.createElement('label'); row.className = 'bot-check';
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = bot.id; cb.dataset.botcheck = '1';
     row.appendChild(cb);
-    const span = document.createElement('span'); span.textContent = bot.name + ' (Lvl ' + bot.level + ', Blitz ' + Math.round(getRating(bot.id,'blitz')) + ')';
+    const span = document.createElement('span'); span.textContent = bot.name + ' (Lvl ' + bot.level + ', ' + VARIANT_LABEL[selectedVariantForUI] + ' ' + Math.round(getRating(bot.id,selectedVariantForUI)) + ')';
     row.appendChild(span);
     box.appendChild(row);
   });
@@ -2055,6 +2047,11 @@ function renderTournamentBotList(){
 document.getElementById('tournamentFormatSelect').addEventListener('change', (e) => {
   document.getElementById('swissRoundsRow').style.display = e.target.value === 'swiss' ? 'block' : 'none';
   document.getElementById('arenaDurationRow').style.display = e.target.value === 'arena' ? 'block' : 'none';
+});
+document.getElementById('tournamentTcSelect').addEventListener('change', (e) => {
+  const [tcMin, tcInc] = e.target.value.split('|').map(Number);
+  setSelectedVariant(variantForTC(tcMin, tcInc));
+  renderTournamentBotList();
 });
 
 document.getElementById('createTournamentBtn').addEventListener('click', () => {
@@ -2094,8 +2091,6 @@ document.getElementById('createTournamentBtn').addEventListener('click', () => {
   renderTournamentActive();
 });
 
-/* Bots currently occupied in a real-time game (tournament OR Live TV) —
-   shared between both systems so the same bot is never double-booked. */
 const globalBusyBotIds = new Set();
 
 function generatePairings(t){
@@ -2110,20 +2105,13 @@ function generatePairings(t){
       const cand = list[i];
       if(!t.pairingHistory.has(idxA+'-'+cand) && !t.pairingHistory.has(cand+'-'+idxA)){ partnerPos = i; break; }
     }
-    if(partnerPos === -1 && list.length) partnerPos = 0; // forced rematch, nobody fresh left
+    if(partnerPos === -1 && list.length) partnerPos = 0;
     if(partnerPos === -1){ pairs.push([idxA, null]); }
     else { const partner = list.splice(partnerPos,1)[0]; pairs.push([idxA, partner]); t.pairingHistory.add(idxA+'-'+partner); }
   }
   return pairs;
 }
 
-/* Arena scoring, matching lichess's documented arena rules exactly:
-   win = 2, draw = 1, loss = 0. Once a player is already on a streak of
-   2+ consecutive wins (the "fire" is lit), the NEXT game is worth double
-   (win = 4, draw = 2) — a draw during an active streak still resets it
-   afterwards. Berserking (halving your own clock before your first
-   move) adds +1 point on a win, on top of any streak doubling, and only
-   counts if at least 7 plies were played. */
 function addTournamentPoints(t, idx, score, berserked){
   t.gamesPlayed[idx]++;
   if(t.format === 'swiss'){ t.scores[idx] += score; return; }
@@ -2140,31 +2128,51 @@ function addTournamentPoints(t, idx, score, berserked){
   }
 }
 
-/* Hard ceiling on how many bot-vs-bot games (Live TV + tournament rounds,
-   combined) run their move-by-move simulation at the same time. Each such
-   game does real move search (minimax / Stockfish) on the single JS
-   thread — with no cap, a big tournament (tested with 50 bots -> 28
-   simultaneous games) froze the whole tab solid for well over a minute.
-   Everyone still gets *paired* immediately; this only staggers when each
-   pair's game actually starts playing, exactly like Live TV already
-   staggers itself across a fixed number of channels. */
 const MAX_CONCURRENT_LIVE_BOT_GAMES = 4;
 function totalLiveBotGamesCount(){
   return Object.keys(botTvGames).length + (tournament ? Object.keys(tournament.liveGames).length : 0);
 }
 
-/* Plays a bot-vs-bot game out for real, move by move, on its own Chess
-   instance, using real Stockfish (falling back to the built-in engine
-   only if Stockfish couldn't be loaded) — used by both Swiss rounds and
-   the continuous Arena so that any such game can be watched live on the
-   spectator board instead of being resolved instantly behind the
-   scenes. Marks both bots globally busy so Live TV won't also use them. */
+/* Generic per-move "thinking time" for a bot with a REAL clock: shaped by
+   level, the bot's own speed setting, and how much time it has left —
+   mirrors getThinkDelayMs() used for the human's own games, so bots in
+   tournaments/Live TV behave exactly like they would against you. */
+function computeBotThinkDelayMs(level, bot, remainingMs){
+  const baseMin = 120 + level*40;
+  const baseMax = 350 + level*260;
+  let delay = baseMin + Math.random()*(baseMax-baseMin);
+  const speedMult = { slow:1.6, normal:1, fast:0.45 }[bot && bot.speed] || 1;
+  delay *= speedMult;
+  if(remainingMs !== null && remainingMs !== undefined){
+    const remSec = remainingMs/1000;
+    if(remSec <= 8) delay = Math.min(delay, 90 + Math.random()*120);
+    else if(remSec <= 25) delay *= 0.35;
+    else if(remSec <= 60) delay *= 0.65;
+    else if(remSec > 240) delay *= 1.15;
+  }
+  return Math.min(delay, 2600);
+}
+function timePressureBlunderMultFor(bot, remainingMs){
+  if(remainingMs === null || remainingMs === undefined) return 1;
+  const handling = (bot && bot.timeHandling) || 'normal';
+  const factor = { good:0.6, normal:1, poor:1.8 }[handling] || 1;
+  const remSec = remainingMs/1000;
+  if(remSec <= 10) return 1 + 2.5*factor;
+  if(remSec <= 30) return 1 + 1.2*factor;
+  if(remSec <= 60) return 1 + 0.4*factor;
+  return 1;
+}
+function makeLiveClock(tcMin, tcInc){
+  if(tcMin === 0 && tcInc === 0) return { w:null, b:null };
+  return { w: tcMin*60*1000, b: tcMin*60*1000 };
+}
+function liveTurnRemainingMs(live, color){
+  if(live.times.w === null) return null;
+  return live.times[color];
+}
+
 function beginBotVsBotGame(t, match){
   const pa = t.participants[match.aIdx], pb = t.participants[match.bIdx];
-  // Guard against double-booking a bot that's still finishing an older Live
-  // TV game right as this tournament round starts — wait for it instead of
-  // running the same bot on two boards at once. Also throttle how many
-  // games run their simulation concurrently (see MAX_CONCURRENT_LIVE_BOT_GAMES).
   if(globalBusyBotIds.has(pa.id) || globalBusyBotIds.has(pb.id) || totalLiveBotGamesCount() >= MAX_CONCURRENT_LIVE_BOT_GAMES){
     setTimeout(() => { if(tournament === t && match.result === null && !match.live) beginBotVsBotGame(t, match); }, 300);
     return;
@@ -2175,44 +2183,57 @@ function beginBotVsBotGame(t, match){
   const g = new Chess();
   const levelForColor = { w: aIsWhite ? pa.level : pb.level, b: aIsWhite ? pb.level : pa.level };
   const botForColor = { w: aIsWhite ? pa : pb, b: aIsWhite ? pb : pa };
-  const live = { key, match, game: g, levelForColor, botForColor, aIsWhite, plies: 0, lastMove: null, done: false };
+  const live = {
+    key, match, game: g, levelForColor, botForColor, aIsWhite, plies: 0, lastMove: null, done: false,
+    times: makeLiveClock(t.tcMin, t.tcInc), increment: t.tcInc
+  };
   match.live = live;
   t.liveGames[key] = live;
   if(!spectateGameKey) spectateGameKey = key;
-  scheduleLiveMove(t, live);
+  stepLiveGame(t, live);
   return live;
 }
-function scheduleLiveMove(t, live){
-  const delay = 220 + Math.random()*420; // randomized "Bedenkzeit" between moves
-  setTimeout(function tick(){
-    if(tournament !== t || live.done) return;
-    if(t.paused){ setTimeout(tick, 300); return; }
-    stepLiveGame(t, live);
-  }, delay);
-}
 async function stepLiveGame(t, live){
+  if(tournament !== t || live.done) return;
   const g = live.game;
-  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live); return; }
-  const level = live.levelForColor[g.turn()];
-  const mv = await pickMoveForLevelAsync(g, level, live.botForColor[g.turn()]);
-  if(tournament !== t || live.done) return; // ended/paused-away while we awaited Stockfish
-  if(!mv){ finishLiveGame(t, live); return; }
+  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live, null); return; }
+  if(t.paused){ setTimeout(() => stepLiveGame(t, live), 300); return; }
+  const turnColor = g.turn();
+  const level = live.levelForColor[turnColor];
+  const bot = live.botForColor[turnColor];
+  let remaining = liveTurnRemainingMs(live, turnColor);
+  if(remaining !== null && remaining <= 0){ finishLiveGame(t, live, turnColor); return; }
+  const delay = computeBotThinkDelayMs(level, bot, remaining);
+  await new Promise(r => setTimeout(r, delay));
+  if(tournament !== t || live.done) return;
+  if(t.paused){ setTimeout(() => stepLiveGame(t, live), 300); return; }
+  if(live.times.w !== null){
+    live.times[turnColor] = Math.max(0, live.times[turnColor] - delay);
+    if(live.times[turnColor] <= 0){ finishLiveGame(t, live, turnColor); return; }
+  }
+  const blunderMult = timePressureBlunderMultFor(bot, remaining);
+  const mv = await pickMoveForLevelAsync(g, level, Object.assign({}, bot, { blunderMult }));
+  if(tournament !== t || live.done) return;
+  if(!mv){ finishLiveGame(t, live, null); return; }
   g.move(mv);
+  if(live.times.w !== null) live.times[turnColor] += live.increment*1000;
   live.lastMove = { from: mv.from, to: mv.to };
   live.plies++;
   if(spectateGameKey === live.key) renderSpectateBoard();
-  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live); return; }
-  scheduleLiveMove(t, live);
+  if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live, null); return; }
+  stepLiveGame(t, live);
 }
-function finishLiveGame(t, live){
+function finishLiveGame(t, live, flaggedColor){
   live.done = true;
   const g = live.game;
   let scoreForWhite = 0.5;
-  if(g.in_checkmate()) scoreForWhite = (g.turn() === 'w') ? 0 : 1;
+  if(flaggedColor){ scoreForWhite = flaggedColor === 'w' ? 0 : 1; }
+  else if(g.in_checkmate()) scoreForWhite = (g.turn() === 'w') ? 0 : 1;
   const scoreA = live.aIsWhite ? scoreForWhite : (1 - scoreForWhite);
   const match = live.match;
   const pa = t.participants[match.aIdx], pb = t.participants[match.bIdx];
   applyEloForGame(pa.id, pb.id, t.variant, scoreA);
+  recordMatchResult(pa.id, pb.id, scoreA);
   match.result = scoreA;
   match.live = null;
   addTournamentPoints(t, match.aIdx, scoreA);
@@ -2237,11 +2258,6 @@ function startTournamentRound(){
   renderTournamentActive();
 }
 
-/* ---- Continuous arena engine (this is the "exactly like lichess" part):
-   a fixed time budget ticks down; the instant two participants (you or a
-   bot) are free, they're paired and start playing immediately — no
-   discrete rounds, no manual "next round" click. Pausing freezes the
-   clock, stops new pairings, and freezes every running bot-vs-bot game. */
 function startArenaEngine(){
   const t = tournament;
   t.lastTickTs = Date.now();
@@ -2270,7 +2286,7 @@ function arenaTick(t){
   const freeIdxs = t.participants.map((_,i)=>i).filter(i => {
     if(busy.has(i)) return false;
     const p = t.participants[i];
-    if(!p.isHuman && globalBusyBotIds.has(p.id)) return false; // bot is currently in a Live TV game
+    if(!p.isHuman && globalBusyBotIds.has(p.id)) return false;
     return true;
   });
   if(freeIdxs.length >= 2){
@@ -2280,14 +2296,13 @@ function arenaTick(t){
       const m = t.currentRoundMatches[idx];
       return m.aIdx === humanIdx || m.bIdx === humanIdx;
     });
-    // Lichess behaviour: as soon as you're paired, you're dropped straight onto the board.
     if(humanMatchIdx !== undefined && activeTournamentMatch === null && viewingHome()){
       setTimeout(() => playTournamentMatch(humanMatchIdx), 30);
     }
     renderTournamentActive();
   }
 }
-function viewingHome(){ return true; } // arena auto-start is safe from any view; startNewGame switches to Play itself
+function viewingHome(){ return true; }
 
 function pairFreeParticipants(t, freeIdxs){
   const order = freeIdxs.map(idx => ({ idx, score: t.scores[idx], r: Math.random() }))
@@ -2336,7 +2351,8 @@ function playTournamentMatch(inRoundIndex){
 }
 
 function tournamentStandingsRows(t){
-  return t.participants.map((p, idx) => ({ idx, name:p.name, isHuman:p.isHuman, points:t.scores[idx], games:t.gamesPlayed[idx] }))
+  return t.participants.map((p, idx) => ({ idx, name:p.name, isHuman:p.isHuman, points:t.scores[idx], games:t.gamesPlayed[idx],
+    rating: Math.round(getRating(p.id, t.variant)) }))
     .sort((a,b) => b.points - a.points);
 }
 function fmtArenaClock(ms){
@@ -2355,8 +2371,6 @@ function renderTournamentActive(){
     if(spectateRefreshTimer){ clearInterval(spectateRefreshTimer); spectateRefreshTimer = null; }
     return;
   }
-  // A tournament is already running — hide the "create a new tournament"
-  // settings instead of leaving them visible and clickable next to it.
   if(setupPanel) setupPanel.style.display = 'none';
   const t = tournament;
   panel.style.display = 'flex'; panel.style.flexDirection = 'column'; panel.style.gap = '12px';
@@ -2368,11 +2382,11 @@ function renderTournamentActive(){
     : (t.finished ? 'Beendet' : (t.paused ? ('Pausiert · noch ' + fmtArenaClock(t.remainingMs)) : ('Noch ' + fmtArenaClock(t.remainingMs))));
   headPanel.innerHTML = '<h3>' + t.name + ' — ' + (t.format==='swiss'?'Schweizer System':'Arena') + '</h3><p style="margin:0 0 8px;font-size:13px">'+roundLabel+' · ' + VARIANT_LABEL[t.variant] + '</p>';
   const table = document.createElement('table'); table.className = 'standings';
-  table.innerHTML = '<thead><tr><th>#</th><th>Teilnehmer</th><th>Punkte</th><th>Partien</th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>#</th><th>Teilnehmer</th><th>Rating</th><th>Punkte</th><th>Partien</th></tr></thead>';
   const tbody = document.createElement('tbody');
   tournamentStandingsRows(t).forEach((row, i) => {
     const tr = document.createElement('tr'); if(row.isHuman) tr.className = 'you';
-    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+row.name+(row.isHuman?' (du)':'')+'</td><td>'+row.points+'</td><td>'+row.games+'</td>';
+    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+row.name+(row.isHuman?' (du)':'')+'</td><td>'+row.rating+'</td><td>'+row.points+'</td><td>'+row.games+'</td>';
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -2392,13 +2406,14 @@ function renderTournamentActive(){
       list.appendChild(item); return;
     }
     const a = t.participants[m.aIdx], b = t.participants[m.bIdx];
+    const aRating = Math.round(getRating(a.id, t.variant)), bRating = Math.round(getRating(b.id, t.variant));
     const involvesHuman = m.aIdx === humanIdx || m.bIdx === humanIdx;
     let badge = '<span class="badge">läuft</span>';
     if(m.result !== null){
       const res = m.result===1 ? a.name+' gewinnt' : m.result===0 ? b.name+' gewinnt' : 'Remis';
       badge = '<span class="badge">'+res+'</span>';
     }
-    item.innerHTML = '<span class="rlabel">'+a.name+' vs '+b.name+'</span>';
+    item.innerHTML = '<span class="rlabel">'+a.name+' ('+aRating+') vs '+b.name+' ('+bRating+')</span>';
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
     right.innerHTML = badge;
     if(involvesHuman && m.result === null){
@@ -2435,7 +2450,7 @@ function renderTournamentActive(){
     ctrlPanel.appendChild(pauseBtn);
     const info = document.createElement('p'); info.style.cssText = 'margin:8px 0 0;font-size:12.5px;color:var(--text2)';
     info.textContent = t.paused
-      ? 'Pausiert: Uhr, Neu-Paarung und alle laufenden Bot-Partien stehen still.'
+      ? 'Pausiert: Uhr, Neu-Paarung und alle laufenden Bot-Partien (inkl. deren eigener Uhr) stehen still.'
       : 'Läuft — sobald du frei bist, wirst du automatisch neu gepaart und direkt aufs Brett gebracht.';
     ctrlPanel.appendChild(info);
   } else {
@@ -2453,11 +2468,6 @@ function renderTournamentActive(){
   renderSpectateSection(t);
 }
 
-/* ---- Spectator board: shows a live bot-vs-bot game move by move.
-   Honest limitation: this file has no server, so there are no other real
-   users to watch — this shows the background games of your own running
-   tournament live, which is the closest a single static page can get to
-   lichess's "watch games" feature. */
 function renderSpectateSection(t){
   const col = document.getElementById('spectateCol');
   const liveKeys = Object.keys(t.liveGames);
@@ -2480,28 +2490,45 @@ function renderSpectateSection(t){
     picker.appendChild(btn);
   });
   renderSpectateBoard();
-  if(!spectateRefreshTimer) spectateRefreshTimer = setInterval(() => { if(tournament) renderSpectateBoard(); }, 500);
+  if(!spectateRefreshTimer) spectateRefreshTimer = setInterval(() => { if(tournament) renderSpectateBoard(); }, 200);
 }
 function renderSpectateBoard(){
   if(!tournament) return;
   const live = tournament.liveGames[spectateGameKey];
   const boardEl2 = document.getElementById('spectateBoard');
   const labelEl = document.getElementById('spectateLabel');
-  if(!live){ boardEl2.innerHTML = ''; labelEl.textContent = ''; return; }
+  const scoreEl = document.getElementById('spectateMatchScore');
+  const clockTopE = document.getElementById('spectateClockTop');
+  const clockBottomE = document.getElementById('spectateClockBottom');
+  if(!live){ boardEl2.innerHTML = ''; labelEl.textContent = ''; if(scoreEl) scoreEl.style.display='none'; return; }
   const a = tournament.participants[live.match.aIdx], b = tournament.participants[live.match.bIdx];
   const whiteName = live.aIsWhite ? a.name : b.name;
   const blackName = live.aIsWhite ? b.name : a.name;
+  const whiteId = live.aIsWhite ? a.id : b.id, blackId = live.aIsWhite ? b.id : a.id;
   labelEl.textContent = whiteName + ' (Weiß) vs ' + blackName + ' (Schwarz)' + (tournament.paused ? ' · pausiert' : '');
+  if(scoreEl){
+    scoreEl.style.display = 'flex';
+    scoreEl.innerHTML = matchScoreHtml(a.id, b.id, a.name, b.name);
+  }
+  if(clockTopE && clockBottomE){
+    if(live.times.w === null){ clockTopE.textContent = '∞'; clockBottomE.textContent = '∞'; }
+    else {
+      clockTopE.textContent = fmtTime(liveTurnRemainingMs(live,'b')/1000);
+      clockBottomE.textContent = fmtTime(liveTurnRemainingMs(live,'w')/1000);
+    }
+    const turn = live.game.turn();
+    clockTopE.classList.toggle('active', turn==='b' && !live.done);
+    clockBottomE.classList.toggle('active', turn==='w' && !live.done);
+  }
   paintBoard(boardEl2, live.game, 'w', null, [], live.lastMove);
 }
 
 /* ============================================================
-   LIVE TV — bots play each other 24/7 (while this tab stays open),
-   fully random pairing and fully random time control per game, using
-   real Stockfish. The instant one game ends, the next one starts.
-   Runs a handful of games in parallel ("channels") so there's always
-   something to watch, exactly like lichess having several TV channels
-   (Bullet TV, Blitz TV, ...) running concurrently.
+   LIVE TV — bots play each other 24/7, now with a REAL per-game clock
+   (random time control per game, exactly like before) instead of just a
+   randomized "thinking delay" with no clock — a bot can now genuinely
+   lose on time here too, and its own speed/timeHandling settings shape
+   how it spends that clock, same as in Tournaments and against you.
    ============================================================ */
 const TV_CHANNEL_COUNT = 3;
 const TV_TC_POOL = [
@@ -2519,11 +2546,6 @@ let botTvSeq = 0;
 let botTvSpectateKey = null;
 let botTvStarted = false;
 
-/* Immediately abandons any in-progress Live TV game that involves the
-   given bot, freeing it up right away instead of making a brand-new
-   tournament wait for that TV game to finish on its own (which — before
-   this — could take a real minute or two and made tournaments look like
-   they were only pairing a couple of participants). */
 function releaseBotFromLiveTv(botId){
   for(const key of Object.keys(botTvGames)){
     const live = botTvGames[key];
@@ -2539,11 +2561,6 @@ function releaseBotFromLiveTv(botId){
 }
 
 function pickFreeBotPair(){
-  // While a tournament is running, its bots must not get siphoned off into
-  // Live TV games — otherwise Live TV keeps re-grabbing them the instant
-  // they free up (its retry loop is faster/more persistent than the arena
-  // engine claiming them back), and the tournament can get stuck with only
-  // a couple of games ever completing instead of pairing everyone.
   const reserved = (tournament && !tournament.finished)
     ? new Set(tournament.participants.filter(p => !p.isHuman).map(p => p.id))
     : null;
@@ -2563,7 +2580,7 @@ function startBotTvEngine(){
 }
 function runNextTvGame(channelIdx){
   const pair = pickFreeBotPair();
-  if(!pair){ setTimeout(() => runNextTvGame(channelIdx), 1200); return; } // no free bots right now, retry shortly
+  if(!pair){ setTimeout(() => runNextTvGame(channelIdx), 1200); return; }
   const [botA, botB] = pair;
   globalBusyBotIds.add(botA.id); globalBusyBotIds.add(botB.id);
   const tc = TV_TC_POOL[Math.floor(Math.random() * TV_TC_POOL.length)];
@@ -2573,7 +2590,11 @@ function runNextTvGame(channelIdx){
   const g = new Chess();
   const levelForColor = { w: aIsWhite ? botA.level : botB.level, b: aIsWhite ? botB.level : botA.level };
   const botForColor = { w: aIsWhite ? botA : botB, b: aIsWhite ? botB : botA };
-  const live = { key, channelIdx, botA, botB, aIsWhite, tc, variant, game: g, levelForColor, botForColor, plies: 0, lastMove: null, done: false };
+  const live = {
+    key, channelIdx, botA, botB, aIsWhite, tc, variant, game: g, levelForColor, botForColor,
+    plies: 0, lastMove: null, done: false,
+    times: makeLiveClock(tc.min, tc.inc), increment: tc.inc
+  };
   botTvGames[key] = live;
   if(!botTvSpectateKey) botTvSpectateKey = key;
   renderWatchView();
@@ -2582,31 +2603,45 @@ function runNextTvGame(channelIdx){
 async function stepTvGame(live){
   if(live.done) return;
   const g = live.game;
-  if(g.game_over() || live.plies >= 220){ finishTvGame(live); return; }
-  const level = live.levelForColor[g.turn()];
-  const mv = await pickMoveForLevelAsync(g, level, live.botForColor[g.turn()]);
-  if(live.done) return; // could have finished by other means while awaiting
-  if(!mv){ finishTvGame(live); return; }
+  if(g.game_over() || live.plies >= 220){ finishTvGame(live, null); return; }
+  const turnColor = g.turn();
+  const level = live.levelForColor[turnColor];
+  const bot = live.botForColor[turnColor];
+  let remaining = liveTurnRemainingMs(live, turnColor);
+  if(remaining !== null && remaining <= 0){ finishTvGame(live, turnColor); return; }
+  const delay = computeBotThinkDelayMs(level, bot, remaining);
+  await new Promise(r => setTimeout(r, delay));
+  if(live.done) return;
+  if(live.times.w !== null){
+    live.times[turnColor] = Math.max(0, live.times[turnColor] - delay);
+    if(live.times[turnColor] <= 0){ finishTvGame(live, turnColor); return; }
+  }
+  const blunderMult = timePressureBlunderMultFor(bot, remaining);
+  const mv = await pickMoveForLevelAsync(g, level, Object.assign({}, bot, { blunderMult }));
+  if(live.done) return;
+  if(!mv){ finishTvGame(live, null); return; }
   g.move(mv);
+  if(live.times.w !== null) live.times[turnColor] += live.increment*1000;
   live.lastMove = { from: mv.from, to: mv.to };
   live.plies++;
   if(botTvSpectateKey === live.key) renderTvBoard();
-  if(g.game_over() || live.plies >= 220){ finishTvGame(live); return; }
-  const delay = 150 + Math.random() * 900; // random "Bedenkzeit" per move, as requested
-  setTimeout(() => stepTvGame(live), delay);
+  if(g.game_over() || live.plies >= 220){ finishTvGame(live, null); return; }
+  stepTvGame(live);
 }
-function finishTvGame(live){
+function finishTvGame(live, flaggedColor){
   live.done = true;
   const g = live.game;
   let scoreForWhite = 0.5;
-  if(g.in_checkmate()) scoreForWhite = (g.turn() === 'w') ? 0 : 1;
+  if(flaggedColor){ scoreForWhite = flaggedColor === 'w' ? 0 : 1; }
+  else if(g.in_checkmate()) scoreForWhite = (g.turn() === 'w') ? 0 : 1;
   const scoreForA = live.aIsWhite ? scoreForWhite : (1 - scoreForWhite);
   applyEloForGame(live.botA.id, live.botB.id, live.variant, scoreForA);
+  recordMatchResult(live.botA.id, live.botB.id, scoreForA);
   globalBusyBotIds.delete(live.botA.id); globalBusyBotIds.delete(live.botB.id);
   delete botTvGames[live.key];
   if(botTvSpectateKey === live.key) botTvSpectateKey = Object.keys(botTvGames)[0] || null;
   renderWatchView();
-  runNextTvGame(live.channelIdx); // immediately start the next game on this channel
+  runNextTvGame(live.channelIdx);
 }
 
 function renderWatchView(){
@@ -2625,24 +2660,38 @@ function renderWatchView(){
 function renderTvBoard(){
   const boardEl3 = document.getElementById('tvBoard');
   const labelEl = document.getElementById('tvLabel');
+  const scoreEl = document.getElementById('tvMatchScore');
+  const clockTopE = document.getElementById('tvClockTop');
+  const clockBottomE = document.getElementById('tvClockBottom');
   if(!boardEl3) return;
   const live = botTvGames[botTvSpectateKey];
-  if(!live){ boardEl3.innerHTML = ''; if(labelEl) labelEl.textContent = 'Partien werden vorbereitet …'; return; }
+  if(!live){ boardEl3.innerHTML = ''; if(labelEl) labelEl.textContent = 'Partien werden vorbereitet …'; if(scoreEl) scoreEl.style.display='none'; return; }
   const whiteName = live.aIsWhite ? live.botA.name : live.botB.name;
   const blackName = live.aIsWhite ? live.botB.name : live.botA.name;
-  if(labelEl) labelEl.textContent = whiteName + ' (Weiß) vs ' + blackName + ' (Schwarz) · ' + live.tc.label;
+  const whiteRating = Math.round(getRating(live.aIsWhite?live.botA.id:live.botB.id, live.variant));
+  const blackRating = Math.round(getRating(live.aIsWhite?live.botB.id:live.botA.id, live.variant));
+  if(labelEl) labelEl.textContent = whiteName+' ('+whiteRating+', Weiß) vs '+blackName+' ('+blackRating+', Schwarz) · '+live.tc.label;
+  if(scoreEl){ scoreEl.style.display='flex'; scoreEl.innerHTML = matchScoreHtml(live.botA.id, live.botB.id, live.botA.name, live.botB.name); }
+  if(clockTopE && clockBottomE){
+    if(live.times.w === null){ clockTopE.textContent='∞'; clockBottomE.textContent='∞'; }
+    else {
+      clockTopE.textContent = fmtTime(liveTurnRemainingMs(live,'b')/1000);
+      clockBottomE.textContent = fmtTime(liveTurnRemainingMs(live,'w')/1000);
+    }
+    const turn = live.game.turn();
+    clockTopE.classList.toggle('active', turn==='b' && !live.done);
+    clockBottomE.classList.toggle('active', turn==='w' && !live.done);
+  }
   paintBoard(boardEl3, live.game, 'w', null, [], live.lastMove);
 }
-// Keep the Watch board fresh even if a re-render was missed, and refresh the
-// engine-status line since ensureEnginePool() resolves asynchronously.
 setInterval(() => {
   const watchView = document.getElementById('view-watch');
   if(watchView && watchView.classList.contains('active')) renderTvBoard();
 }, 500);
-startBotTvEngine(); // Live TV runs in the background from the moment the page loads
+startBotTvEngine();
 
 /* ============================================================
-   LEADERBOARD — per-variant Elo for you and every bot.
+   LEADERBOARD
    ============================================================ */
 let leaderboardVariant = 'blitz';
 document.getElementById('resetEloBtn').addEventListener('click', () => {
@@ -2745,7 +2794,14 @@ function updateAnalysisEval(){
   const whitePct = 50 + (clamped / 800) * 50;
   evalFillEl.style.height = whitePct + '%';
 }
-function renderAnalysisMoves(){ renderMoveList(analysisMovesEl, analysisState.history, analysisState.viewPly, jumpToAnalysisPly); }
+function renderAnalysisMoves(){
+  renderMoveList(analysisMovesEl, analysisState.history, analysisState.viewPly, jumpToAnalysisPly);
+  const openingEl = document.getElementById('analysisOpeningLabel');
+  if(openingEl){
+    const name = detectOpeningName(analysisState.history.map(h=>h.san));
+    openingEl.textContent = name ? ('📖 ' + name) : '';
+  }
+}
 function jumpToAnalysisPly(ply){
   analysisState.viewPly = ply;
   const g = new Chess();
