@@ -736,45 +736,63 @@ function findKingSquare(g, color){
 
 function makeBoardInteractive(containerEl, tapHandler){
   const MOUSE_THRESHOLD = 6, TOUCH_THRESHOLD = 18;
-  let startSq = null, startX = 0, startY = 0, dragging = false, ghostEl = null;
-  let activePointerId = null, gestureThreshold = MOUSE_THRESHOLD;
 
-  function onMove(e){
-    if(!startSq || e.pointerId !== activePointerId) return;
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    if(!dragging && Math.hypot(dx, dy) > gestureThreshold){
-      const sourceEl = containerEl.querySelector('.sq[data-sq="' + startSq + '"]');
+  // renderPlayBoard() (and the puzzle/analysis equivalents) call this again
+  // on EVERY re-render — including a re-render that happens WHILE the player
+  // is mid-drag (e.g. the bot's move lands and the board redraws right as
+  // you're flicking a piece across quickly). That used to create a brand
+  // new set of document-level pointermove/pointerup listeners + local
+  // "dragging" state on top of the still-live previous ones: the old
+  // gesture's floating ghost piece and stale listeners never got cleaned up,
+  // which is exactly what showed up as a piece image getting stuck/frozen
+  // on screen when moving fast. Track the drag state on the container itself
+  // so a fresh call can find and cleanly tear down any gesture still in
+  // flight from before this render.
+  if(containerEl._dragState) containerEl._dragState.cleanup();
+
+  const state = { startSq:null, startX:0, startY:0, dragging:false, ghostEl:null, activePointerId:null, gestureThreshold:MOUSE_THRESHOLD };
+  containerEl._dragState = state;
+  containerEl._tapHandler = tapHandler;
+
+  state.cleanup = function(){
+    document.removeEventListener('pointermove', state._onMove);
+    document.removeEventListener('pointerup', state._onUp);
+    document.removeEventListener('pointercancel', state._onUp);
+    if(state.ghostEl){ state.ghostEl.remove(); state.ghostEl = null; }
+    const sourceDraggingEl = containerEl.querySelector('.sq.dragging-source');
+    if(sourceDraggingEl) sourceDraggingEl.classList.remove('dragging-source');
+    state.startSq = null; state.dragging = false; state.activePointerId = null;
+  };
+
+  state._onMove = function(e){
+    if(!state.startSq || e.pointerId !== state.activePointerId) return;
+    const dx = e.clientX - state.startX, dy = e.clientY - state.startY;
+    if(!state.dragging && Math.hypot(dx, dy) > state.gestureThreshold){
+      const sourceEl = containerEl.querySelector('.sq[data-sq="' + state.startSq + '"]');
       const pieceEl = sourceEl && sourceEl.querySelector('.piece');
       if(pieceEl){
-        dragging = true;
+        state.dragging = true;
         const rect = sourceEl.getBoundingClientRect();
-        ghostEl = pieceEl.cloneNode(true);
-        ghostEl.classList.add('drag-ghost');
-        ghostEl.style.width = rect.width + 'px';
-        ghostEl.style.height = rect.height + 'px';
-        ghostEl.style.left = e.clientX + 'px';
-        ghostEl.style.top = e.clientY + 'px';
-        document.body.appendChild(ghostEl);
+        state.ghostEl = pieceEl.cloneNode(true);
+        state.ghostEl.classList.add('drag-ghost');
+        state.ghostEl.style.width = rect.width + 'px';
+        state.ghostEl.style.height = rect.height + 'px';
+        state.ghostEl.style.left = e.clientX + 'px';
+        state.ghostEl.style.top = e.clientY + 'px';
+        document.body.appendChild(state.ghostEl);
         sourceEl.classList.add('dragging-source');
       }
     }
-    if(dragging && ghostEl){
-      ghostEl.style.left = e.clientX + 'px';
-      ghostEl.style.top = e.clientY + 'px';
+    if(state.dragging && state.ghostEl){
+      state.ghostEl.style.left = e.clientX + 'px';
+      state.ghostEl.style.top = e.clientY + 'px';
       e.preventDefault();
     }
-  }
-  function onUp(e){
-    if(e.pointerId !== activePointerId) return;
-    document.removeEventListener('pointermove', onMove);
-    document.removeEventListener('pointerup', onUp);
-    document.removeEventListener('pointercancel', onUp);
-    if(ghostEl){ ghostEl.remove(); ghostEl = null; }
-    const sourceDraggingEl = containerEl.querySelector('.sq.dragging-source');
-    if(sourceDraggingEl) sourceDraggingEl.classList.remove('dragging-source');
-
-    const wasDragging = dragging, tappedSq = startSq;
-    startSq = null; dragging = false; activePointerId = null;
+  };
+  state._onUp = function(e){
+    if(e.pointerId !== state.activePointerId) return;
+    const wasDragging = state.dragging, tappedSq = state.startSq;
+    state.cleanup();
 
     if(e.type === 'pointercancel') return;
 
@@ -782,30 +800,40 @@ function makeBoardInteractive(containerEl, tapHandler){
       const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
       const targetSqEl = elAtPoint && elAtPoint.closest ? elAtPoint.closest('.sq') : null;
       const targetSq = (targetSqEl && containerEl.contains(targetSqEl)) ? targetSqEl.dataset.sq : null;
-      tapHandler(tappedSq);
-      if(targetSq && targetSq !== tappedSq) tapHandler(targetSq);
+      containerEl._tapHandler(tappedSq);
+      if(targetSq && targetSq !== tappedSq) containerEl._tapHandler(targetSq);
     } else {
-      tapHandler(tappedSq);
+      containerEl._tapHandler(tappedSq);
     }
-  }
+  };
 
-  containerEl.querySelectorAll('.sq').forEach(sq => {
-    sq.addEventListener('pointerdown', e => {
+  // The pointerdown listener is delegated onto the container and bound only
+  // ONCE (not per .sq element, and not again on every re-render) so that
+  // paintBoard()'s innerHTML replacement never leaves it needing to be
+  // rebound, and so repeated makeBoardInteractive() calls can never stack up
+  // duplicate listeners. It always reads the CURRENT _dragState/_tapHandler
+  // off the container, so it stays correct across re-renders.
+  if(!containerEl._delegatedDragBound){
+    containerEl._delegatedDragBound = true;
+    containerEl.addEventListener('pointerdown', e => {
       if(e.button !== undefined && e.button !== 0) return;
+      const sq = e.target && e.target.closest ? e.target.closest('.sq') : null;
+      if(!sq || !containerEl.contains(sq)) return;
+      const st = containerEl._dragState;
       // Ignore a new touch/click starting while a previous gesture on this
       // board hasn't finished yet — with fast games (bullet/ultrabullet)
       // people tap quickly and a second pointerdown could otherwise race
       // with the first one's pointerup, leaving stale listeners around and
       // making taps register on the wrong square ("tapping spinnt").
-      if(activePointerId !== null) return;
-      activePointerId = e.pointerId;
-      startSq = sq.dataset.sq; startX = e.clientX; startY = e.clientY; dragging = false;
-      gestureThreshold = (e.pointerType === 'touch' || e.pointerType === 'pen') ? TOUCH_THRESHOLD : MOUSE_THRESHOLD;
-      document.addEventListener('pointermove', onMove, { passive:false });
-      document.addEventListener('pointerup', onUp);
-      document.addEventListener('pointercancel', onUp);
+      if(!st || st.activePointerId !== null) return;
+      st.activePointerId = e.pointerId;
+      st.startSq = sq.dataset.sq; st.startX = e.clientX; st.startY = e.clientY; st.dragging = false;
+      st.gestureThreshold = (e.pointerType === 'touch' || e.pointerType === 'pen') ? TOUCH_THRESHOLD : MOUSE_THRESHOLD;
+      document.addEventListener('pointermove', st._onMove, { passive:false });
+      document.addEventListener('pointerup', st._onUp);
+      document.addEventListener('pointercancel', st._onUp);
     });
-  });
+  }
 }
 
 /* ============================================================
@@ -1695,10 +1723,18 @@ const STOCKFISH_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/1
    (pickMoveForLevel), whose depth/blunder/noise table gives real, verified
    weak play; real Stockfish (clamped to valid 0-20 skill) only kicks in
    from level 5 up, matching lichess's own "Play the computer" behaviour. */
-const SF_LEVEL_SKILL    = [0, 0, 0, 2, 7, 11, 16, 20];
+/* Lichess's own "Play the computer" table (skill level clamped to Stockfish's
+   valid 0-20 range; the negative values lichess uses internally for levels
+   1-3 aren't accepted by vanilla Stockfish, so those are clamped to 0 here —
+   the extra weakening lichess gets from going below 0 is reproduced instead
+   by the BLUNDER_BY_LEVEL random-mistake table applied in pickMoveForLevelAsync
+   below, on top of the real engine's move, exactly matching lichess's own
+   approach of blending engine strength with injected inaccuracies at low
+   levels). */
+const SF_LEVEL_SKILL    = [0, 0, 0, 3, 7, 11, 16, 20];
 const SF_LEVEL_DEPTH    = [1, 1, 2, 3, 5, 8, 13, 22];
 const SF_LEVEL_MOVETIME = [50, 100, 150, 200, 300, 400, 500, 1000];
-const SF_MIN_LEVEL_FOR_ENGINE = 5;
+const SF_MIN_LEVEL_FOR_ENGINE = 1;
 const SF_POOL_SIZE = 4;
 const SF_LOAD_TIMEOUT_MS = 4000;
 const SF_MOVE_TIMEOUT_MS = 1200;
@@ -1839,6 +1875,19 @@ async function pickMoveForLevelAsync(g, level, bot){
   if(bot && bot.opening && bot.opening !== 'random' && g.history().length === 0){
     const forced = pickMoveForLevel(g, level, bot);
     if(forced) return forced;
+  }
+  /* Real Stockfish is now consulted for every level 1-8 (see
+     SF_MIN_LEVEL_FOR_ENGINE above). Its "Skill Level" option floors out at
+     0, which on its own still plays far too strong for a genuine level-1
+     bot, so — exactly like lichess does — a chance of an intentional random
+     inaccuracy is rolled first for the weaker levels; the rest of the time
+     the real engine's move (already weakened by low skill/depth/movetime)
+     is used as-is. */
+  const stats = (bot && bot.strength) ? statsForStrength(bot.strength) : null;
+  const blunderChance = (stats ? stats.blunder : (BLUNDER_BY_LEVEL[level] || 0)) * (bot && bot.blunderMult || 1);
+  if(Math.random() < Math.min(0.95, blunderChance)){
+    const moves = g.moves({verbose:true});
+    if(moves.length) return moves[Math.floor(Math.random()*moves.length)];
   }
   const sf = await stockfishMove(g, level, bot);
   return sf || pickMoveForLevel(g, level, bot);
