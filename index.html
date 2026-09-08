@@ -735,13 +735,14 @@ function findKingSquare(g, color){
 }
 
 function makeBoardInteractive(containerEl, tapHandler){
-  const THRESHOLD = 6;
+  const MOUSE_THRESHOLD = 6, TOUCH_THRESHOLD = 18;
   let startSq = null, startX = 0, startY = 0, dragging = false, ghostEl = null;
+  let activePointerId = null, gestureThreshold = MOUSE_THRESHOLD;
 
   function onMove(e){
-    if(!startSq) return;
+    if(!startSq || e.pointerId !== activePointerId) return;
     const dx = e.clientX - startX, dy = e.clientY - startY;
-    if(!dragging && Math.hypot(dx, dy) > THRESHOLD){
+    if(!dragging && Math.hypot(dx, dy) > gestureThreshold){
       const sourceEl = containerEl.querySelector('.sq[data-sq="' + startSq + '"]');
       const pieceEl = sourceEl && sourceEl.querySelector('.piece');
       if(pieceEl){
@@ -764,30 +765,45 @@ function makeBoardInteractive(containerEl, tapHandler){
     }
   }
   function onUp(e){
+    if(e.pointerId !== activePointerId) return;
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
     if(ghostEl){ ghostEl.remove(); ghostEl = null; }
     const sourceDraggingEl = containerEl.querySelector('.sq.dragging-source');
     if(sourceDraggingEl) sourceDraggingEl.classList.remove('dragging-source');
 
-    if(dragging){
+    const wasDragging = dragging, tappedSq = startSq;
+    startSq = null; dragging = false; activePointerId = null;
+
+    if(e.type === 'pointercancel') return;
+
+    if(wasDragging){
       const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
       const targetSqEl = elAtPoint && elAtPoint.closest ? elAtPoint.closest('.sq') : null;
       const targetSq = (targetSqEl && containerEl.contains(targetSqEl)) ? targetSqEl.dataset.sq : null;
-      tapHandler(startSq);
-      if(targetSq && targetSq !== startSq) tapHandler(targetSq);
+      tapHandler(tappedSq);
+      if(targetSq && targetSq !== tappedSq) tapHandler(targetSq);
     } else {
-      tapHandler(startSq);
+      tapHandler(tappedSq);
     }
-    startSq = null; dragging = false;
   }
 
   containerEl.querySelectorAll('.sq').forEach(sq => {
     sq.addEventListener('pointerdown', e => {
       if(e.button !== undefined && e.button !== 0) return;
+      // Ignore a new touch/click starting while a previous gesture on this
+      // board hasn't finished yet — with fast games (bullet/ultrabullet)
+      // people tap quickly and a second pointerdown could otherwise race
+      // with the first one's pointerup, leaving stale listeners around and
+      // making taps register on the wrong square ("tapping spinnt").
+      if(activePointerId !== null) return;
+      activePointerId = e.pointerId;
       startSq = sq.dataset.sq; startX = e.clientX; startY = e.clientY; dragging = false;
+      gestureThreshold = (e.pointerType === 'touch' || e.pointerType === 'pen') ? TOUCH_THRESHOLD : MOUSE_THRESHOLD;
       document.addEventListener('pointermove', onMove, { passive:false });
-      document.addEventListener('pointerup', onUp, { once:true });
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
     });
   });
 }
@@ -2242,22 +2258,27 @@ const MAX_CONCURRENT_TOURNAMENT_GAMES = 8;
    level, the bot's own speed setting, and how much time it has left —
    mirrors getThinkDelayMs() used for the human's own games, so bots in
    tournaments/Live TV behave exactly like they would against you. */
-function computeBotThinkDelayMs(level, bot, remainingMs){
-  /* Kept short on purpose: this is a background bot-vs-bot game (tournament
-     or Live TV), not the human's own move — nobody needs to watch a 4.5s
-     "thinking" pause per ply, that's what made spectated games feel like
-     they were hanging. */
+function computeBotThinkDelayMs(level, bot, remainingMs, variant){
+  /* Kept fairly short on purpose: this is a background bot-vs-bot game
+     (tournament or Live TV), not the human's own move. The variant
+     multiplier/cap below lets Live TV still feel true to the format —
+     classical bots visibly deliberate, ultrabullet bots barely pause —
+     without going back to the old flat 4.5s pause that made spectated
+     games feel like they were hanging. */
   const baseMin = 60 + level*15;
   const baseMax = 140 + level*70;
   let delay = baseMin + Math.random()*(baseMax-baseMin);
   const speedMult = { slow:1.4, normal:1, fast:0.4 }[bot && bot.speed] || 1;
   delay *= speedMult;
+  const variantMult = (variant && TV_VARIANT_THINK_MULT[variant]) || 1;
+  delay *= variantMult;
   if(remainingMs !== null && remainingMs !== undefined){
     const remSec = remainingMs/1000;
     delay *= timeScaleFactor(remSec);
     if(remSec <= 8) delay = Math.min(delay, 60 + Math.random()*80);
   }
-  return Math.min(delay, 900);
+  const cap = (variant && TV_VARIANT_THINK_CAP[variant]) || 900;
+  return Math.min(delay, cap);
 }
 function timePressureBlunderMultFor(bot, remainingMs){
   if(remainingMs === null || remainingMs === undefined) return 1;
@@ -2304,17 +2325,15 @@ async function stepLiveGame(t, live){
   if(tournament !== t || live.done) return;
   const g = live.game;
   if(g.game_over() || live.plies >= 200){ finishLiveGame(t, live, null); return; }
-  if(t.paused){ setTimeout(() => stepLiveGame(t, live), 300); return; }
   const turnColor = g.turn();
   const level = live.levelForColor[turnColor];
   const bot = live.botForColor[turnColor];
   let remaining = liveTurnRemainingMs(live, turnColor);
   if(remaining !== null && remaining <= 0){ finishLiveGame(t, live, turnColor); return; }
   const turnStart = Date.now();
-  const delay = computeBotThinkDelayMs(level, bot, remaining);
+  const delay = computeBotThinkDelayMs(level, bot, remaining, t.variant);
   await new Promise(r => setTimeout(r, delay));
   if(tournament !== t || live.done) return;
-  if(t.paused){ setTimeout(() => stepLiveGame(t, live), 300); return; }
   const blunderMult = timePressureBlunderMultFor(bot, remaining);
   const mv = await pickMoveForLevelAsync(g, level, Object.assign({}, bot, { blunderMult }));
   if(tournament !== t || live.done) return;
@@ -2385,17 +2404,17 @@ function stopArenaEngine(){ if(arenaEngineTimer){ clearInterval(arenaEngineTimer
 function arenaTick(t){
   if(!tournament || tournament !== t || t.format !== 'arena'){ stopArenaEngine(); return; }
   const now = Date.now();
-  if(!t.paused){
-    t.remainingMs -= (now - t.lastTickTs);
-    if(t.remainingMs <= 0){
-      t.remainingMs = 0; t.finished = true;
-      stopArenaEngine(); t.lastTickTs = now;
-      renderTournamentActive();
-      return;
-    }
+  /* t.paused means "the human is paused", not the whole arena: the clock
+     keeps counting down and bots keep getting paired and playing exactly
+     as before — only the human is left out of new pairings while paused. */
+  t.remainingMs -= (now - t.lastTickTs);
+  if(t.remainingMs <= 0){
+    t.remainingMs = 0; t.finished = true;
+    stopArenaEngine(); t.lastTickTs = now;
+    renderTournamentActive();
+    return;
   }
   t.lastTickTs = now;
-  if(t.paused){ return; }
 
   /* Uses t.activeMatches (a Set of only the currently-running matches)
      instead of scanning the ever-growing t.currentRoundMatches history —
@@ -2406,6 +2425,7 @@ function arenaTick(t){
   const freeIdxs = t.participants.map((_,i)=>i).filter(i => {
     if(busy.has(i)) return false;
     const p = t.participants[i];
+    if(p.isHuman && t.paused) return false; // human sits out new pairings while paused
     if(!p.isHuman && globalBusyBotIds.has(p.id)) return false;
     if(t.cooldownUntil && now < t.cooldownUntil[i]) return false; // 5s breather after finishing a game
     return true;
@@ -2417,7 +2437,7 @@ function arenaTick(t){
       const m = t.currentRoundMatches[idx];
       return m.aIdx === humanIdx || m.bIdx === humanIdx;
     });
-    if(humanMatchIdx !== undefined && activeTournamentMatch === null && viewingHome()){
+    if(humanMatchIdx !== undefined && !t.paused && activeTournamentMatch === null && viewingHome()){
       setTimeout(() => playTournamentMatch(humanMatchIdx), 30);
     }
     renderTournamentActive();
@@ -2544,7 +2564,7 @@ function renderTournamentActive(){
   const headPanel = document.createElement('div'); headPanel.className = 'panel';
   const roundLabel = t.format === 'swiss'
     ? ('Round ' + t.roundsPlayed + ' / ' + t.maxRounds)
-    : (t.finished ? 'Beendet' : (t.paused ? ('Pausiert · noch ' + fmtArenaClock(t.remainingMs)) : ('Noch ' + fmtArenaClock(t.remainingMs))));
+    : (t.finished ? 'Beendet' : ('Noch ' + fmtArenaClock(t.remainingMs) + (t.paused ? ' · du bist pausiert' : '')));
   headPanel.innerHTML = '<h3>' + t.name + ' — ' + (t.format==='swiss'?'Schweizer System':'Arena') + '</h3><p style="margin:0 0 8px;font-size:13px">'+roundLabel+' · ' + VARIANT_LABEL[t.variant] + '</p>';
   const table = document.createElement('table'); table.className = 'standings';
   table.innerHTML = '<thead><tr><th>#</th><th>Participant</th><th>Rating</th><th>Points</th><th>Games</th></tr></thead>';
@@ -2697,17 +2717,24 @@ function renderSpectateBoard(){
    lose on time here too, and its own speed/timeHandling settings shape
    how it spends that clock, same as in Tournaments and against you.
    ============================================================ */
-const TV_CHANNEL_COUNT = 3;
-const TV_TC_POOL = [
-  { label: '1+0 Bullet',    min: 1,  inc: 0 },
-  { label: '2+1 Bullet',    min: 2,  inc: 1 },
-  { label: '3+0 Blitz',     min: 3,  inc: 0 },
-  { label: '3+2 Blitz',     min: 3,  inc: 2 },
-  { label: '5+0 Blitz',     min: 5,  inc: 0 },
-  { label: '5+3 Blitz',     min: 5,  inc: 3 },
-  { label: '10+0 Rapid',    min: 10, inc: 0 },
-  { label: '15+10 Rapid',   min: 15, inc: 10 }
+/* One fixed channel per variant, so Live TV always has exactly one
+   Ultrabullet, one Bullet, one Blitz, one Rapid and one Classical game
+   running at the same time instead of picking a random time control per
+   slot (which could — and often did — leave some variants unrepresented
+   entirely while others repeated). */
+const TV_VARIANT_CHANNELS = [
+  { variant: 'ultrabullet', tcPool: [ { label: '15s',    min: 0.25, inc: 0 }, { label: '30s',    min: 0.5,  inc: 0 } ] },
+  { variant: 'bullet',      tcPool: [ { label: '1+0',     min: 1,  inc: 0 }, { label: '2+1',     min: 2,  inc: 1 } ] },
+  { variant: 'blitz',       tcPool: [ { label: '3+0',     min: 3,  inc: 0 }, { label: '5+0',     min: 5,  inc: 0 }, { label: '5+3', min: 5, inc: 3 } ] },
+  { variant: 'rapid',       tcPool: [ { label: '10+0',    min: 10, inc: 0 }, { label: '15+10',   min: 15, inc: 10 } ] },
+  { variant: 'classical',   tcPool: [ { label: '30+0',    min: 30, inc: 0 }, { label: '30+20',   min: 30, inc: 20 } ] }
 ];
+const TV_CHANNEL_COUNT = TV_VARIANT_CHANNELS.length;
+/* How much longer/shorter bots should "think" per move on each Live TV
+   channel, on top of their normal level/speed-based delay — classical
+   bots visibly deliberate, ultrabullet bots barely pause at all. */
+const TV_VARIANT_THINK_MULT = { ultrabullet: 0.35, bullet: 0.6, blitz: 1, rapid: 1.8, classical: 3.2 };
+const TV_VARIANT_THINK_CAP  = { ultrabullet: 220,  bullet: 500, blitz: 900, rapid: 2200, classical: 4500 };
 let botTvGames = {};
 let botTvSeq = 0;
 let botTvSpectateKey = null;
@@ -2762,8 +2789,9 @@ function runNextTvGame(channelIdx){
   if(!pair){ setTimeout(() => runNextTvGame(channelIdx), 1200); return; }
   const [botA, botB] = pair;
   globalBusyBotIds.add(botA.id); globalBusyBotIds.add(botB.id);
-  const tc = TV_TC_POOL[Math.floor(Math.random() * TV_TC_POOL.length)];
-  const variant = variantForTC(tc.min, tc.inc);
+  const channel = TV_VARIANT_CHANNELS[channelIdx];
+  const tc = channel.tcPool[Math.floor(Math.random() * channel.tcPool.length)];
+  const variant = channel.variant;
   const key = 'tv' + (botTvSeq++);
   const aIsWhite = Math.random() < 0.5;
   const g = new Chess();
@@ -2789,7 +2817,7 @@ async function stepTvGame(live){
   let remaining = liveTurnRemainingMs(live, turnColor);
   if(remaining !== null && remaining <= 0){ finishTvGame(live, turnColor); return; }
   const turnStart = Date.now();
-  const delay = computeBotThinkDelayMs(level, bot, remaining);
+  const delay = computeBotThinkDelayMs(level, bot, remaining, live.variant);
   await new Promise(r => setTimeout(r, delay));
   if(live.done) return;
   const blunderMult = timePressureBlunderMultFor(bot, remaining);
@@ -2832,7 +2860,7 @@ function renderWatchView(){
   Object.values(botTvGames).forEach(live => {
     const btn = document.createElement('button');
     if(live.key === botTvSpectateKey) btn.className = 'primary';
-    btn.textContent = live.botA.name.split(' ')[0] + ' – ' + live.botB.name.split(' ')[0] + ' · ' + live.tc.label;
+    btn.textContent = VARIANT_LABEL[live.variant] + ' · ' + live.botA.name.split(' ')[0] + ' – ' + live.botB.name.split(' ')[0] + ' · ' + live.tc.label;
     btn.addEventListener('click', () => { botTvSpectateKey = live.key; renderWatchView(); });
     picker.appendChild(btn);
   });
@@ -2851,7 +2879,7 @@ function renderTvBoard(){
   const blackName = live.aIsWhite ? live.botB.name : live.botA.name;
   const whiteRating = Math.round(getRating(live.aIsWhite?live.botA.id:live.botB.id, live.variant));
   const blackRating = Math.round(getRating(live.aIsWhite?live.botB.id:live.botA.id, live.variant));
-  if(labelEl) labelEl.textContent = whiteName+' ('+whiteRating+', White) vs '+blackName+' ('+blackRating+', Black) · '+live.tc.label;
+  if(labelEl) labelEl.textContent = VARIANT_LABEL[live.variant]+' ('+live.tc.label+') · '+whiteName+' ('+whiteRating+', White) vs '+blackName+' ('+blackRating+', Black)';
   if(scoreEl){ scoreEl.style.display='flex'; scoreEl.innerHTML = matchScoreHtml(live.botA.id, live.botB.id, live.botA.name, live.botB.name); }
   if(clockTopE && clockBottomE){
     if(live.times.w === null){ clockTopE.textContent='∞'; clockBottomE.textContent='∞'; }
