@@ -664,14 +664,7 @@ body{background:radial-gradient(circle at 50% -20%,#3a3834 0,#262522 28%,#1f1e1c
    run entirely client-side (chess.js for rules, no backend).
    ============================================================ */
 
-document.addEventListener('dblclick', e => e.preventDefault(), { passive:false });
 document.addEventListener('gesturestart', e => e.preventDefault(), { passive:false });
-let __lastTouchEnd = 0;
-document.addEventListener('touchend', e => {
-  const now = Date.now();
-  if (now - __lastTouchEnd <= 350) e.preventDefault();
-  __lastTouchEnd = now;
-}, { passive:false });
 
 const PIECE_VALUE = { p:100, n:320, b:330, r:500, q:900, k:0 };
 
@@ -3178,10 +3171,6 @@ document.getElementById('toolsToPlayBtn').addEventListener('click', () => {
       const b=document.querySelector(selectors[target]); if(b) b.click(); else v3Toast(target+' section is available in the navigation');
     }));
   }
-  // Prevent repeated rapid clicks from stacking expensive computer searches.
-  document.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click',()=>{ if(btn.dataset.cooldown)return; if(/computer|play|start|next/i.test(btn.textContent)){btn.dataset.cooldown='1';setTimeout(()=>delete btn.dataset.cooldown,120)} },{passive:true});
-  });
 })();
 </script>
 </body>
